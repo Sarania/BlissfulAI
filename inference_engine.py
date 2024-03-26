@@ -10,7 +10,7 @@ import gc
 import os
 from datetime import datetime
 from collections import OrderedDict
-from utils import timed_execution, log, generate_hash
+from utils import timed_execution, log, generate_hash, nvidia
 from singletons import AI, LanguageModel, ProgramSettings
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextStreamer
 import torch
@@ -151,7 +151,9 @@ def generate_model_response():
     llm = LanguageModel()
     ps = ProgramSettings()
     # Clean up the context before inference
-    torch.cuda.empty_cache()
+    if nvidia(): 
+        if ps.backend in ["auto", "cuda"]:
+            torch.cuda.empty_cache()
     gc.collect()
     cprompt=custom_template()
     #log(cprompt)
@@ -185,7 +187,9 @@ def generate_model_response():
     # Clean up the context after inference
     prompt = None
     del prompt
-    torch.cuda.empty_cache()
+    if nvidia():
+        if ps.backend in ["auto", "cuda"]:
+            torch.cuda.empty_cache()
     gc.collect()
     feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=True)
     return post_process(feedback)

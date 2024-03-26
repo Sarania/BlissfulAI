@@ -820,8 +820,9 @@ def main():
                 llm.model = None
                 llm.tokenizer = None
                 gc.collect()
-                if ps.backend in ["auto", "cuda"]:
-                    torch.cuda.empty_cache()
+                if nvidia():
+                    if ps.backend in ["auto", "cuda"]:
+                        torch.cuda.empty_cache()
             elif ps.model_status in ["inferencing", "loading"]:
                 # Show a popup if the model is busy or loading.
                 popup_message("The model is currently busy or loading.")
