@@ -68,14 +68,14 @@ def threaded_model_response(user_message, model_response):
     """
     ai = AI()
     with torch.inference_mode():
-        # Update the AI"s working memory dynamically based on context
+        # Update the AI's working memory dynamically based on context
         ai.working_memory = update_working_memory(user_message)
         now=str(datetime.now())
         identity=generate_hash(str(user_message)+str(now))
         ai.core_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
         ai.working_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
 
-        # Run the language models and update the AI"s memory with it"s output
+        # Run the language models and update the AI's memory with it's output
         response = generate_model_response()
         now=str(datetime.now())
         identity=generate_hash(str(response)+str(now))
@@ -84,11 +84,7 @@ def threaded_model_response(user_message, model_response):
 
 def custom_template():
     """
-    function to apply a custom template based on the model
-    
-    Parameters:
-    - prompt: The prompt to templatify, a list of dictionaries
-    - template_style: the template style to apply
+    Function to apply a custom template based on the program settings. 
     """
     ai = AI()
     ps = ProgramSettings()
@@ -96,7 +92,7 @@ def custom_template():
     prompt=ai.working_memory
     log(ai.working_memory)
     cprompt = ""
-    if ps.template == "HF Automatic":
+    if ps.template == "HF Automatic": #Use HF transformers build in apply_chat_template, doesn't always detect things properly
         cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
     elif ps.template =="BAI Opus":
         for entry in ai.working_memory:
@@ -197,12 +193,11 @@ def generate_model_response():
 @timed_execution
 def update_working_memory(user_message):
     """
-    Updates the AI"s working memory based on the user"s input and core memory contents.
+    Updates the AI's working memory based on the user's input and core memory contents.
     It filters core memories relevant to the current user message using keyword matching, 
     prioritizing recent entries and system messages.
 
     Parameters:
-    - ai: The AI we are working with
     - user_message: The user"s input, a string
  
     Returns:

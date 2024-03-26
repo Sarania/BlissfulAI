@@ -28,7 +28,9 @@ def get_os_name_and_version():
     return os_name, "Version information not available"
 
 def get_cpu_name():
-    """Get the CPU name for Linux/Windows."""
+    """
+    Get the CPU name for Linux/Windows.
+    """
     if platform.system() == "Windows":
         try:
             cpu_name = subprocess.check_output("wmic cpu get name", stderr=subprocess.STDOUT).decode().strip().split('\n')[1].strip()
@@ -44,7 +46,9 @@ def get_cpu_name():
     return "CPU name not found"
 
 def get_gpu_info():
-    """Get all GPU names for Linux/Windows."""
+    """
+    Get all GPU names for Linux/Windows.
+    """
     gpu_names = []
     if platform.system() == "Windows":
         try:
@@ -130,6 +134,9 @@ def is_number(s):
     return True
 
 def nvidia():
+    """
+    Checks if nvidia gpu is available and cuda is available
+    """
     if not hasattr(nvidia, "nvidia_checked"):
         # Only calculate once if not already done
         gpus = get_gpu_info()

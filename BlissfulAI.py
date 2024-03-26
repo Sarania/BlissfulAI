@@ -43,11 +43,15 @@ import PySimpleGUI as sg
 
 
 def open_url(url):
-    """Simply opens a URL in the default browser"""
+    """
+    Simply opens a URL in the default browser
+    """
     webbrowser.open(url)
 
 def graceful_shutdown():
-    """clean things up and shut it down"""
+    """
+    clean things up and shut it down
+    """
     ps = ProgramSettings()
     ai = AI()
     if ps.model_status == "inferencing":
@@ -141,9 +145,6 @@ def handle_edit_event():
     """
     Opens a new window for editing the personality configuration. Updates the personality_definition
     dictionary based on user inputs from the edit window.
-    
-    Parameters:
-    - window: A handle to the window we are working with
     """
     ai = AI()
     numeric_fields = ("top_k", "top_p", "temperature", "response_length", "typical_p", #A list of all the fields that should contain only numbers
@@ -181,9 +182,6 @@ def handle_create_event():
     """
     Opens a new window for editing the personality configuration. Updates the personality_definition
     dictionary based on user inputs from the edit window.
-    
-    Parameters:
-    - window: A handle to the window we are working with
     """
     ai = AI()
     ps = ProgramSettings()
@@ -214,8 +212,8 @@ def handle_create_event():
             # Update system_messages with the new contents
             system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
             ai.system_memory = system_messages
-            update_hard_memory(1)
             ps.personality_status="loaded"
+            update_hard_memory()
             window.close()
             break
         if event in numeric_fields:
@@ -230,7 +228,7 @@ def handle_create_event():
 
 def popup_message(message):
     """
-    Displays a notice to the user
+    Displays a notice to the user in the form of a popup window with an OK button
 
     Parameters:
     - message: The notice to display
@@ -276,21 +274,17 @@ def display_message(window, sender_name, message, sender_color, message_color):
     - sender_name: The name of the message sender, string.
     - message: The message content, string.
     - sender_color: The color for the sender"s name, string.
-    - message_color: The color for the message text, string.
-    - background_color: The background color for both sender"s name and message, string.
+    - message_color: The color for the message text, string.    - background_color: The background color for both sender"s name and message, string.
     """
     window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
     window["-OUTPUT-"].print(message, text_color=message_color, end="\n")
 
 
-def update_hard_memory(override=0):
-    """
-    Update the AI"s "hard memory" - the hard drive copy of it"s memory
-    
-    """
+def update_hard_memory():
+    """Update the AI"s "hard memory" - the hard drive copy of it"s memory"""
     ps = ProgramSettings()
     ai = AI()
-    if ps.personality_status != "unloaded" or override==1:
+    if ps.personality_status != "unloaded":
         if ai.personality_definition["persistent"]: # We save the conversation history only if persistence is enabled
             filtered_messages = [message for message in ai.core_memory if message["role"] != "system"]
         else:
@@ -310,7 +304,9 @@ def update_hard_memory(override=0):
 
 
 def handle_about_event():
-    """Draws the about box and waits for ok/close"""
+    """
+    Draws the about box and waits for ok/close
+    """
     cpu_name = get_cpu_name()
     cpu_index = cpu_name.find("CPU")
     cpu_name = cpu_name[:cpu_index].strip() if cpu_index != -1 else cpu_name
@@ -360,7 +356,7 @@ def create_edit_window():
     Creates the window for editing the personality configuration
     
     Parameters:
-    - ai: The AI we are working with
+    - None
     
     Returns:
     - window: a handle to the created window
@@ -404,7 +400,7 @@ def create_create_window():
     Creates the window for editing the personality configuration
     
     Parameters:
-    - ai: The AI we are working with
+    - None
     
     Returns:
     - window: a handle to the created window
@@ -497,7 +493,8 @@ def handle_middle_click(event, window, context_menu):
     
     Parameters:
     - event: The event we received
-    - context_menu: The context menu to use
+    - window: The main chat window, PSG windowobject
+    - context_menu: The context menu to use, PSG context menu
     """
     ai = AI()
     try:
@@ -612,7 +609,7 @@ def load_personality(personality_path):
     along with making a backup of the personality configuration.
 
     Parameters:
-    - personality: The name of the AI to load, a string
+    - personality_path: The path to the personality folder, a string
 
     """
     ai = AI()
