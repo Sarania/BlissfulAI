@@ -82,3 +82,13 @@ When you first run the program, make sure to check out the Settings dialog and s
 ### Personal Data Warning:
 
 BlissfulAI is a work in progress and receives a lot of updates. Also, I am not perfect(far from it!). At the same time, it's quite possible to develop intense emotional attachments to the AI characters one interacts with. For this reason, if you have a character you like, it is **STRONGLY** recommended you make a backup of the characters folder from time to time so that they don't get taken out from a bug! 
+
+### License:
+
+This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License][cc-by-nc-sa].
+
+[![CC BY-NC-SA 4.0][cc-by-nc-sa-image]][cc-by-nc-sa]
+
+[cc-by-nc-sa]: http://creativecommons.org/licenses/by-nc-sa/4.0/
+[cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
+[cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
