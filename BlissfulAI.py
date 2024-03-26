@@ -186,6 +186,7 @@ def handle_create_event():
     - window: A handle to the window we are working with
     """
     ai = AI()
+    ps = ProgramSettings()
     numeric_fields = ("top_k", "top_p", "temperature", "response_length", "typical_p", #A list of all the fields that should contain only numbers
                       "stm_size", "ltm_size", "length_penalty", "num_beams", "num_keywords", "repetition_penalty")
     window = create_create_window()
@@ -213,7 +214,8 @@ def handle_create_event():
             # Update system_messages with the new contents
             system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
             ai.system_memory = system_messages
-            update_hard_memory()
+            update_hard_memory(1)
+            ps.personality_status="loaded"
             window.close()
             break
         if event in numeric_fields:
@@ -281,14 +283,14 @@ def display_message(window, sender_name, message, sender_color, message_color):
     window["-OUTPUT-"].print(message, text_color=message_color, end="\n")
 
 
-def update_hard_memory():
+def update_hard_memory(override=0):
     """
     Update the AI"s "hard memory" - the hard drive copy of it"s memory
     
     """
     ps = ProgramSettings()
     ai = AI()
-    if ps.personality_status != "unloaded":
+    if ps.personality_status != "unloaded" or override==1:
         if ai.personality_definition["persistent"]: # We save the conversation history only if persistence is enabled
             filtered_messages = [message for message in ai.core_memory if message["role"] != "system"]
         else:
@@ -367,52 +369,31 @@ def create_edit_window():
     label_width = 20
     string_width = 16
     num_width = 16
+    # System messages section
+    # Serialize system_messages for editing
+    editable_messages = "\n".join([msg["content"] for msg in ai.system_memory])
+    messages_editor = [[sg.Multiline(default_text=editable_messages, size=(120, 10), key="messages_editor")]]
 
-    if args.nosysmsg:
-        # Update layout
-        layout = [
-            [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
-            [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
-            [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
-            [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
-            [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
-            [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
-            [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
-            [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True),  sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
-            [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
-            [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-            [sg.Button("Save"), sg.Button("Cancel")]
-        ]
-    else: #The layout allows editing of system messages if they are enabled
-        # System messages section
-        # Serialize system_messages for editing
-        editable_messages = "\n".join([msg["content"] for msg in ai.system_memory])
-        messages_editor = [[sg.Multiline(default_text=editable_messages, size=(120, 10), key="messages_editor")]]
-
-        # Update layout
-        layout = [
-            [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
-            [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
-            [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
-            [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
-            [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
-            [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
-            [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
-            [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True),  sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
-            [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
-            [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-            [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
-            [sg.Column(messages_editor, vertical_alignment="top")],
-            [sg.Button("Save"), sg.Button("Cancel")]
-        ]
+    # Update layout
+    layout = [
+        [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
+        [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
+        [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
+        [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
+        [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
+        [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
+        [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
+        [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True),  sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
+        [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
+        [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
+        [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
+        [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
+        [sg.Column(messages_editor, vertical_alignment="top")],
+        [sg.Button("Save"), sg.Button("Cancel")]
+    ]
 
     window = sg.Window("Edit Personality Configuration", layout, modal=True, icon="./resources/bai.ico")
     return window
@@ -432,50 +413,30 @@ def create_create_window():
     label_width = 20
     string_width = 16
     num_width = 16
+    #The layout allows editing of system messages if they are enabled
+    # System messages section
+    messages_editor = [[sg.Multiline(size=(120, 10), key="messages_editor")]]
 
-    if args.nosysmsg:
-        # Update layout
-        layout = [
-            [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
-            [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
-            [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="top_p_enable")],
-            [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="typical_p_enable")],
-            [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="top_k_enable")],
-            [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="temperature_enable")],
-            [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False,  key="length_penalty_enable")],
-            [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True),  sg.Checkbox("", default=False, key="repetition_penalty_enable")],
-            [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
-            [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-            [sg.Button("Save"), sg.Button("Cancel")]
-        ]
-    else: #The layout allows editing of system messages if they are enabled
-        # System messages section
-        messages_editor = [[sg.Multiline(size=(120, 10), key="messages_editor")]]
-
-        # Update layout
-        layout = [
-            [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
-            [sg.Text("Name", size=(label_width, 1)), sg.InputText("Name", key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
-            [sg.Text("Top P", size=(label_width, 1)), sg.InputText(1.0, key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="top_p_enable")],
-            [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(1.0, key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="typical_p_enable")],
-            [sg.Text("Top K", size=(label_width, 1)), sg.InputText(50, key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="top_k_enable")],
-            [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(1.0, key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="temperature_enable")],
-            [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(1.0, key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=False, key="length_penalty_enable")],
-            [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(1.0, key="repetition_penalty", size=(num_width, 1), enable_events=True),  sg.Checkbox("", default=False, key="repetition_penalty_enable")],
-            [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(128, key="response_length", size=(num_width, 1), enable_events=True)],
-            [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(24, key="stm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(24, key="ltm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(3, key="num_keywords", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(1, key="num_beams", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=True, key="persistent")],
-            [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
-            [sg.Column(messages_editor, vertical_alignment="top")],
-            [sg.Button("Save"), sg.Button("Cancel")]
-        ]
+    # Update layout
+    layout = [
+        [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
+        [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
+        [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
+        [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
+        [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
+        [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
+        [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
+        [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True),  sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
+        [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
+        [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
+        [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
+        [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
+        [sg.Column(messages_editor, vertical_alignment="top")],
+        [sg.Button("Save"), sg.Button("Cancel")]
+    ]
 
     window = sg.Window("Create Personality Configuration", layout, modal=True, icon="./resources/bai.ico")
     return window
