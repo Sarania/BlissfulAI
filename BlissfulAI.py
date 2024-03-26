@@ -32,6 +32,7 @@ import shutil
 import warnings
 import tkinter as tk
 from queue import Queue
+import webbrowser
 from inference_engine import threaded_model_response, load_model
 from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, nvidia
 from singletons import AI, LanguageModel, ProgramSettings
@@ -39,15 +40,14 @@ import torch
 import win32api
 import win32con
 import PySimpleGUI as sg
-import webbrowser
+
 
 def open_url(url):
+    """Simply opens a URL in the default browser"""
     webbrowser.open(url)
 
 def graceful_shutdown():
-    """
-    clean things up and shut it down
-    """
+    """clean things up and shut it down"""
     ps = ProgramSettings()
     ai = AI()
     if ps.model_status == "inferencing":
@@ -307,20 +307,21 @@ def update_hard_memory(override=0):
             json.dump(ai.system_memory, file, indent=4)
     else:
         log("Nothing to save!")
-        
+
 
 def handle_about_event():
+    """Draws the about box and waits for ok/close"""
     cpu_name = get_cpu_name()
     cpu_index = cpu_name.find("CPU")
     cpu_name = cpu_name[:cpu_index].strip() if cpu_index != -1 else cpu_name
     gpu_names = get_gpu_info()
-    ram_used, ram_total = get_ram_usage()
+    _, ram_total = get_ram_usage()
     os_name, os_version = get_os_name_and_version()
     ps = ProgramSettings()
-    
+
     # Updated Layout with Image
     layout = [
-        [sg.Column([[sg.Image("./resources/baiabout.png", size=(256, 256))]], justification='center', pad=((0,36), (0,0)))], 
+        [sg.Column([[sg.Image("./resources/baiabout.png", size=(256, 256))]], justification='center', pad=((0,36), (0,0)))],
         [sg.Text("Blissful AI", justification="center", expand_x=True)],
         [sg.Text(f"Version {ps.VERSION}", justification="center", expand_x=True)],
         [sg.Text("BlissfulAI copyleft 2024 Blyss Sarania under", justification="center", pad=((0,0),(0,0))), sg.Button("CC-BY-NC-SA", button_color=("blue", sg.theme_background_color()), border_width=0, tooltip="Click to visit license page", key="-LINK-", pad=((0,0),(0,0)))],
@@ -335,23 +336,23 @@ def handle_about_event():
     layout.append([sg.Column([[sg.Button("OK")]], justification="center")])
     # Window
     window = sg.Window("About BlissfulAI", layout, modal=True, finalize=True, icon="./resources/bai.ico")
-    
+
     # Centering text (kind of a workaround since PySimpleGUI does not directly support centering multi-line text)
     for element in window.element_list():
         if isinstance(element, sg.Text) or isinstance(element, sg.Button):
             element.Widget.pack(expand=True)
-    
+
     # Event Loop
     while True:
-        event, values = window.read()
+        event, _ = window.read()
         if event in [sg.WIN_CLOSED, "OK"]:
             break
         if event == "-LINK-":
             # Assuming open_url function is defined elsewhere or use webbrowser.open
             open_url("https://creativecommons.org/licenses/by-nc-sa/4.0/")
-    
+
     window.close()
-    
+
 
 
 def create_edit_window():
@@ -822,7 +823,7 @@ def main():
                 llm.model = None
                 llm.tokenizer = None
                 gc.collect()
-                if ps.backend in ["auto", "cuda"]: 
+                if ps.backend in ["auto", "cuda"]:
                     torch.cuda.empty_cache()
             elif ps.model_status in ["inferencing", "loading"]:
                 # Show a popup if the model is busy or loading.
@@ -843,7 +844,7 @@ def main():
                 log("Saving current personality...")
                 update_hard_memory()
                 ai.reset()
-            handle_create_event()   
+            handle_create_event()
         elif event =="Load Personality":
             if ps.model_status != "inferencing":
                 if ps.personality_status == "loaded":

@@ -9,19 +9,23 @@ import os
 from datetime import datetime
 import time
 import hashlib
-import psutil
-import pynvml
 import subprocess
 import platform
 import re
+import psutil
+import pynvml
+import torch
 
 def get_os_name_and_version():
+    """
+    Returns the name and version of the operating system
+    """
     os_name = platform.system()
-    if os_name == "Windows" or os_name == "Linux":
+    if os_name in ["Windows", "Linux"]:
         os_version = platform.version()
         return os_name, os_version
-    else:
-        return os_name, "Version information not available"
+
+    return os_name, "Version information not available"
 
 def get_cpu_name():
     """Get the CPU name for Linux/Windows."""
@@ -129,8 +133,11 @@ def nvidia():
     if not hasattr(nvidia, "nvidia_checked"):
         # Only calculate once if not already done
         gpus = get_gpu_info()
-        nvidia.available = any("nvidia" in item.lower() for item in gpus)
+        nvidia.gpu_available = any("nvidia" in item.lower() for item in gpus)
+        nvidia.cuda_available = torch.cuda.is_available()
+        nvidia.available = all([nvidia.gpu_available, nvidia.cuda_available])
         nvidia.nvidia_checked = True
+
     return nvidia.available
 
 def update_system_status(window, args_model):
@@ -151,7 +158,7 @@ def update_system_status(window, args_model):
         status_message = f"Model: {os.path.basename(args_model) if args_model is not None else None}, Memory usage: {used_ram:.2f}/{available_ram:.2f} GB, VRAM usage: {used_vram:.2f}/{total_vram:.2f} GB, CPU: {cpu_usage}%, GPU: {gpu_usage}%"
     else:
         status_message = f"Model: {os.path.basename(args_model) if args_model is not None else None}, Memory usage: {used_ram:.2f}/{available_ram:.2f} GB, CPU: {cpu_usage}%"
-    
+
     window["-STATUS-"].update(status_message)
 
 
@@ -211,7 +218,7 @@ def animate_ellipsis():
         animate_ellipsis.counter = 0
     if not hasattr(animate_ellipsis, "ellipsis"):
         animate_ellipsis.ellipsis = " "
-    
+
     animate_ellipsis.counter += 1
 
     next_state = {
@@ -220,9 +227,9 @@ def animate_ellipsis():
         "..": "...",
         "...": " ",
     }
-    
+
     # Only update the ellipsis state when the counter matches the update frequency
     if animate_ellipsis.counter % 3 == 0:
         animate_ellipsis.ellipsis = next_state.get(animate_ellipsis.ellipsis, " ")
-    
+
     return animate_ellipsis.ellipsis
