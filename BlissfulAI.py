@@ -634,16 +634,14 @@ def load_personality(personality_path):
             for key, value in personality_definition.items():
                 log(f"{key}: {value}")
             log("---------------------------------------------------------")
-
-            if not args.nosysmsg:
-                # Load the system messages from the appropriate location
-                ai.system_memory = []
-                with open(system_message_path, "r", encoding="utf-8") as sm_file:
-                    ai.system_memory=json.load(sm_file)
-                ai.num_sys_msg=len(ai.system_memory)
-                log(ai.system_memory)
-                log(str(ai.num_sys_msg) + " system messages.")
-                memory = [{**item, "content": item["content"].replace("\n", "")} for item in memory] # clean the \n
+            # Load the system messages from the appropriate location
+            ai.system_memory = []
+            with open(system_message_path, "r", encoding="utf-8") as sm_file:
+                ai.system_memory=json.load(sm_file)
+            ai.num_sys_msg=len(ai.system_memory)
+            log(ai.system_memory)
+            log(str(ai.num_sys_msg) + " system messages.")
+            memory = [{**item, "content": item["content"].replace("\n", "")} for item in memory] # clean the \n
         memory_failed=0
         log("Memory consistency checks...")
         for i, entry in enumerate(memory):
@@ -883,7 +881,6 @@ parser.add_argument("-m", "--model", type=str, default=None)
 parser.add_argument("-p", "--personality", type=str, default=None)
 parser.add_argument("--suppress", type=bool, default=True)
 parser.add_argument("-d", "--device", type=str, default="cuda")
-parser.add_argument("-s", "--nosysmsg", action="store_true")
 parser.add_argument("--fpfix", action="store_true")
 parser.add_argument("--hf", action="store_true")
 parser.add_argument("--stream", action="store_true")
