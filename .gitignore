@@ -1,0 +1,4 @@
+baivenv/
+__pycache__/
+logfile.txt
+settings.json
