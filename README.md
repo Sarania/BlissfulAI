@@ -21,7 +21,6 @@ Welcome to **BlissfulAI**, a work in progress chatbot/story writing front end fo
 
 ## Prerequisites:
 - Python3 on Windows, probably Linux as well(I tried, haven't tested yet though!)
-- git
 - Necessary CUDA Toolkit to go with your desired CUDA version (11.8 or 12.1)
 
 ## Beginning notes:
@@ -37,43 +36,7 @@ VRAM usage will also increase depending on your personality settings, especially
 
 ## Basic Setup:
 
-To get started with **BlissfulAI**, the first thing you need to do is clone it and set up the environment.
-
-Clone the repository and change to it's directory on your local machine by running the following commands in your terminal/command prompt:
-
-```
-git clone https://github.com/Sarania/BlissfulAI.git
-cd BlissfulAI
-```
-
-### Creating and Activating a Virtual Environment(recommended but not specifically required):
-
-To create a virtual environment, run:
-
-```python -m venv venv```
-
-
-Activate the virtual environment:
-
-- On Windows:
-
-```.\venv\Scripts\activate```
-
-- On Linux:
-
-```. ./venv/bin/activate```
-
-### Installing Dependencies:
-
-First you need to install Torch with or without CUDA depending on your needs. Go to the [Pytorch website](https://pytorch.org/get-started/locally/) and select according to your needs. Then paste and execute that link in your terminal.
-
-For instance for Pytorch stable with CUDA 12.1 on Windows:
-
-```pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121```
-
-Lastly, install the remaining dependencies:
-
-```pip3 install -r requirements.txt```
+To get started with **BlissfulAI**, the first thing you need to do is download it. Head to the releases page and download the latest release, then extract it to a location of your choosing. Once that's done, double click either "easy_setup.bat" On Windows or "easy_setup.sh" on Linux(for Linux you might need to make it executable). Follow the instructions and when the UI appears, set up your username and select your desired CUDA version. Then let the installer complete.
 
 Now you're gonna need a model to work with. For best results I recommend at least a 7B model. Some good suggestions:
 
@@ -82,21 +45,15 @@ Now you're gonna need a model to work with. For best results I recommend at leas
 - [Zephyr 7B β](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta) - A 7 billion paramter model trained with DPO for good instruction following. Use with the "BAI Zephyr" or "HF Automatic template. Great for question answering tasks.
 - [StableLM Zephyr 3B](https://huggingface.co/stabilityai/stablelm-zephyr-3b) - A pretty decent 3 billion parameter instruction following model. Recommended if VRAM is a concern, otherwise use a 7B model. Use with "BAI Zephyr" or "HF Automatic" template.
 
-You can find other models on [HuggingFace](https://huggingface.co/models?sort=trending), and a good comparison exists [here](https://www.reddit.com/r/LocalLLaMA/comments/17fhp9k/huge_llm_comparisontest_39_models_tested_7b70b/). Downloading them can be annoying, so I wrote a script to make it easy. For instance to download the Opus 1.2 7B model from above:
+You can find other models on [HuggingFace](https://huggingface.co/models?sort=trending), and a good comparison exists [here](https://www.reddit.com/r/LocalLLaMA/comments/17fhp9k/huge_llm_comparisontest_39_models_tested_7b70b/). Downloading them can be annoying, so I wrote a UI to make it easy. Double click the "download_model.bat" on Windows or the "download_mode.sh" on Linux(Which again, you may need to make executable. Paste the URL to the model you want to download, then hit save. This will download the model into the model_name subdirectory of BlissfulAI, from which you can load it into the program. Note this ONLY works with models on [HuggingFace](https://huggingface.co)! Also for the moment, BlissfulAI only supports loading unquantized models in the safetensors format. GGUF files will not work. Models quantized with AWQ or GPTQ won't work(support is coming whenever I get a GPU capable of working with that or someone else adds it!) For the time being, on-the-fly quantization of models is provided by [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) instead! It's exactly 92%* as good and works with my hardware. (*This number is completely made up but it is genuinely quite good.)
 
-```python download_model.py https://huggingface.co/dreamgen/opus-v1.2-7b```
-
-This will download the model into the "opus-v1.2-7b" subdirectory of BlissfulAI, from which you can load it into the program. Note this script ONLY works with models on [HuggingFace](https://huggingface.co)! Also for the moment, BlissfulAI only supports loading unquantized models in the safetensors format. GGUF files will not work. Models quantized with AWQ or GPTQ won't work(support is coming whenever I get a GPU capable of working with that or someone else adds it!) For the time being, on-the-fly quantization of models is provided by [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) instead! It's exactly 92%* as good and works with my hardware. (*This number is completely made up but it is genuinely quite good.)
-
-You're now ready to go! Make sure to always activate the venv before running the program or it's utilities!
-
-```python BlissfulAI.py```
+You're now ready to go! Run the program by double clicking either "BlissfulAI.bat" on Windows, or "BlissfulAI.sh" on Linux! Linux users may need to make the script executable!
 
 ## Usage Notes:
 
 ### Beginners:
 
-When you first run the program, make sure to check out the Settings dialog and set up your username, backend, quantization, and other settings. Quantization is necessary for loading large models, explaining it is beyond the scope of this project. Suffice it to say, quantization sacrifices a little bit of quality for a lot less memory usage. If you are running out of VRAM, try using quantization. Next, you will need to create a new personality to interact with. Give it a name and adjust the settings to your liking. If you're unsure, leave the settings at default except for "Name" and the system messages section. This system messages define the character. [Example of some system messages and their effect.](/resources/baiexample.png) You can have as many system messages as you like, but too many tends to dillute their effect. I try to keep it around 8 or less. If you wish to know further information about the various parameters you can adjust, the internet is a good place to start but experimentation is best!
+When you first run the program, make sure to check out the Settings dialog and set up your backend, quantization, and other settings. Quantization is necessary for loading large models, explaining it is beyond the scope of this project. Suffice it to say, quantization sacrifices a little bit of quality for a lot less memory usage. If you are running out of VRAM, try using quantization. Next, you will need to create a new personality to interact with. Give it a name and adjust the settings to your liking. If you're unsure, leave the settings at default except for "Name" and the system messages section. This system messages define the character. [Example of some system messages and their effect.](/resources/baiexample.png) You can have as many system messages as you like, but too many tends to dillute their effect. I try to keep it around 8 or less. If you wish to know further information about the various parameters you can adjust, the internet is a good place to start but experimentation is best!
 
 ## Templates:
 
