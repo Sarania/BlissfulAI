@@ -865,7 +865,10 @@ def main():
             else:
                 popup_message("Cannot reload personality while the model is inferencing!")
         elif event =="Settings":
-            handle_settings_event()
+            if ps.model_status in ["ready", "unloaded"]:
+                handle_settings_event()
+            else:
+                popup_message("Can't change settings while the model is loading or busy!")                
         #Allows editing of the personality_defitinion and system messages
         elif event == "Edit Personality":
             if ps.model_status != "inferencing":
