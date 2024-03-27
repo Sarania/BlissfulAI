@@ -109,6 +109,11 @@ def custom_template():
                 cprompt+=entry["content"]
                 cprompt+="<|IM_END|>\n"
         cprompt+=f"<|IM_START|>text names= {ai.personality_definition['name']}\n"
+    elif ps.template == "BAI SynthIA":
+        for entry in prompt:
+            cprompt += entry["role"].upper() + ":\n"
+            cprompt += entry["content"] + "\n"
+        cprompt += "ASSISTANT:\n"
     elif ps.template == "BAI Instruct":
         for entry in ai.system_memory:
             cprompt+="[INST] "
@@ -151,12 +156,11 @@ def generate_model_response():
     llm = LanguageModel()
     ps = ProgramSettings()
     # Clean up the context before inference
-    if nvidia(): 
+    if nvidia():
         if ps.backend in ["auto", "cuda"]:
             torch.cuda.empty_cache()
     gc.collect()
     cprompt=custom_template()
-    #log(cprompt)
     log("Tokenizing...")
     if ps.backend in ("cuda", "auto"):
         log("Prompt to cuda...")
@@ -239,7 +243,6 @@ def update_working_memory(user_message):
 
     # Extract the values from the OrderedDict to maintain the order
     matching_memories = list(unique_entries.values())
-    #log(matching_memories)
     # Select memories with a bias towards more recent matches and feedback.
     if matching_memories:
         # Create initial weights that increase linearly towards more recent entries.
@@ -325,34 +328,31 @@ def post_process(input_string):
     ai = AI()
     ps = ProgramSettings()
     punctuation_set = {"!", ".", "?", "*", ")"}
-    #log("Model output: " + str(input_string))
-    #We assume the response starts from the last occurence of <|assistant|>
-    #This might not be true for all models and can break if the model outputs weird shit!
-    if ps.template != "BAI Opus":
-        response_start = input_string.rfind("<|assistant|>")
-        response_start += 13
+    if ps.template == "BAI SynthIA":
+        fstring = f"{ai.working_memory[-2]['content']}\nUSER:\n{ai.working_memory[-1]['content']}\nASSISTANT:\n" #Sometimes the LLM writes more USER and ASSISTANT parts, so we need to make sure we display the correct response
+        response_start = input_string.rfind(fstring) + len(fstring)
         response = input_string[response_start:]
         #Here we truncate the output to the last occurence of specific punctuation
-        if len(response) != 0 and response[-1] not in punctuation_set:
-            last_punctuation_index = next((i for i, char in enumerate(
-                reversed(response)) if char in punctuation_set), None)
-            if last_punctuation_index is not None:
-                result_string = response[:-last_punctuation_index].rstrip()
-                response = result_string
-        response = response.strip()
+        tag_index=response.find("\nUSER:")
+        if tag_index != -1:
+            response=response[:tag_index]
+        else:
+            if len(response) != 0 and response[-1] not in punctuation_set:
+                last_punctuation_index = next((i for i, char in enumerate(
+                    reversed(response)) if char in punctuation_set), None)
+                if last_punctuation_index is not None:
+                    result_string = response[:-last_punctuation_index].rstrip()
+                    response = result_string
+            response = response.strip()
         if response[-1] == "*":
             #Check the number of asterisks so we don"t leave a dangling one
             if response.count("*") % 2 != 0:
                 response = response[:-1]
                 response = response.rstrip()
     elif ps.template == "BAI Opus":
-        fstring = f"{ai.working_memory[-2]['content']}<|IM_END|>\n<|IM_START|>text names= {ps.username}\n{ai.working_memory[-1]['content']}<|IM_END|>\n<|IM_START|>text names= {ai.personality_definition['name']}\n"
-        log(fstring)
+        fstring = f"{ai.working_memory[-2]['content']}<|IM_END|>\n<|IM_START|>text names= {ps.username}\n{ai.working_memory[-1]['content']}<|IM_END|>\n<|IM_START|>text names= {ai.personality_definition['name']}\n" #Sometimes the LLM writes more parts than it's supposed to, so we need to make sure we display the correct response
         response_start = input_string.rfind(fstring) + len(fstring)
         response = input_string[response_start:]
-        log(response)
-        #newline_pos = response.find("\n") + 1  # Adding 1 to start after the "\n"
-        #response = response[newline_pos:]
         tag_index=response.find("<|IM_END|>")
         if tag_index != -1:
             response=response[:tag_index]
@@ -363,14 +363,39 @@ def post_process(input_string):
                 if last_punctuation_index is not None:
                     result_string = response[:-last_punctuation_index].rstrip()
                     response = result_string
-                    response = response.strip()
+                response = response.strip()
             if response[-1] == "*":
                 #Check the number of asterisks so we don"t leave a dangling one
                 if response.count("*") % 2 != 0:
                     response = response[:-1]
                     response = response.rstrip()
         response = response.strip()
-    #log("Response is " + len(response.split()) + " words in length.")
+    else:
+        fstring = f"{ai.working_memory[-2]['content']} \n<|user|>\n{ai.working_memory[-1]['content']} \n<|assistant|>\n" #Sometimes the LLM writes more parts than it's supposed to, so we need to make sure we display the correct response
+        response_start = input_string.rfind(fstring) + len(fstring)
+        log("fstring ------------------------------------------------------")
+        log(repr(fstring))
+        log(repr(input_string))  # Adjust indices as necessary
+        log("-----------------------------------------------")
+        log(response_start)
+        response = input_string[response_start:]
+        tag_index=response.find("</s>")
+        if tag_index != -1:
+            response=response[:tag_index]
+        else:
+            #Here we truncate the output to the last occurence of specific punctuation
+            if len(response) != 0 and response[-1] not in punctuation_set:
+                last_punctuation_index = next((i for i, char in enumerate(
+                    reversed(response)) if char in punctuation_set), None)
+                if last_punctuation_index is not None:
+                    result_string = response[:-last_punctuation_index].rstrip()
+                    response = result_string
+        response = response.strip()
+        if response[-1] == "*":
+            #Check the number of asterisks so we don"t leave a dangling one
+            if response.count("*") % 2 != 0:
+                response = response[:-1]
+                response = response.rstrip()
     return response
 
 def weighted_selection(keyword_memories, weights, max_length):

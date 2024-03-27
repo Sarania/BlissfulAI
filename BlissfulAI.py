@@ -447,7 +447,7 @@ def create_settings_window():
     string_width = 36
     backend_options = ["cuda", "cpu", "auto"] if nvidia() is True else ["cpu", "auto"]
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
-    template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct"]
+    template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
     [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username")],
     [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="backend", readonly=True)],
