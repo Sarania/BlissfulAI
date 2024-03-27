@@ -1,4 +1,7 @@
 baivenv/
+venv/
 __pycache__/
 logfile.txt
 settings.json
+install_torch.bat
+install_torch.sh

@@ -7,7 +7,7 @@ Created on Sat Mar 23 00:39:32 2024
 """
 import os
 import json
-from utils import log
+from datetime import datetime
 
 class SingletonMeta(type):
     """
@@ -18,6 +18,20 @@ class SingletonMeta(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(SingletonMeta, cls).__call__(*Parameters, **kwParameters)
         return cls._instances[cls]
+    
+def log(input_string): #this is duplicated here to avoid dependencies during initial setup
+    """
+    Logs the string to the logfile
+
+    Parameters:
+    - input_string: The string to log.
+
+    """
+    with open("./logfile.txt", "a", encoding="utf-8") as logfile:
+        current_time = datetime.now()
+        time_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
+        logfile.write(time_str + ": " + str(input_string) + "\n")
+        print(time_str + ": " + str(input_string) + "\n")
 
 class ProgramSettings(metaclass=SingletonMeta):
     """
@@ -38,6 +52,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._personality_status = "unloaded" #Current status of the personality, not saved
         self._username = "User" #Username, saved to file
         self._template = "HF Automatic" #Selected template, saved to file
+        self._cuda_version = "None"
         self._VERSION = "0.9.0 Alpha" #Program version
 
     @property
@@ -162,6 +177,16 @@ class ProgramSettings(metaclass=SingletonMeta):
     def template(self):
         """Gets the current template setting."""
         return self._template
+    
+    @property
+    def cuda_version(self):
+        """Returns the set cuda version"""
+        return self._cuda_version
+    
+    @cuda_version.setter
+    def cuda_version(self, new_version):
+        """Sets a new version of CUDA"""
+        self._cuda_version = new_version
 
     @template.setter
     def template(self, value):
