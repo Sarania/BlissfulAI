@@ -23,4 +23,5 @@ echo Installing BlissfulAI requirements...
 pip install -r requirements.txt
 
 echo Done.
+pause
 

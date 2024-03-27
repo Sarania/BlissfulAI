@@ -43,7 +43,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         """
         Initializes the ProgramSettings with default values.
         """
-        self._backend = "cpu" #The backend to use, saved to file
+        self._backend = "auto" #The backend to use, saved to file
         self._quant = "None" #The quantization to use, saved to file
         self._default_model = "" #The model to load on startup, saved to file
         self._default_personality = "" #The personality to load on startup, saved to file

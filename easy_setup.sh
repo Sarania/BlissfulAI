@@ -24,3 +24,4 @@ echo "Installing BlissfulAI requirements..."
 pip install -r requirements.txt
 
 echo "Done."
+read -p "Press any key to continue... " -n1 -s
