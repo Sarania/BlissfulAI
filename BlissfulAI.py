@@ -187,7 +187,7 @@ def handle_create_event():
     ps = ProgramSettings()
     numeric_fields = ("top_k", "top_p", "temperature", "response_length", "typical_p", #A list of all the fields that should contain only numbers
                       "stm_size", "ltm_size", "length_penalty", "num_beams", "num_keywords", "repetition_penalty")
-    window = create_create_window()
+    window = create_edit_window()
     valid_values=ai.personality_definition
     while True:
         event, values = window.read()
@@ -315,7 +315,7 @@ def handle_about_event():
 
     # Updated Layout with Image
     layout = [
-        [sg.Column([[sg.Image("./resources/baiabout.png", size=(256, 256))]], justification='center', pad=((0,36), (0,0)))],
+        [sg.Column([[sg.Image("./resources/baiabout.png", size=(256, 256))]], justification="center", pad=((0,36), (0,0)))],
         [sg.Text("Blissful AI", justification="center", expand_x=True)],
         [sg.Text(f"Version {ps.VERSION}", justification="center", expand_x=True)],
         [sg.Text("BlissfulAI copyleft 2024 Blyss Sarania under", justification="center", pad=((0,0),(0,0))), sg.Button("CC-BY-NC-SA", button_color=("blue", sg.theme_background_color()), border_width=0, tooltip="Click to visit license page", key="-LINK-", pad=((0,0),(0,0)))],
@@ -359,6 +359,26 @@ def create_edit_window():
     Returns:
     - window: a handle to the created window
     """
+    def update_help(window, evname):
+        # Explanations mapping
+        explanations = {
+            "name": "(name) - Specify the AI's name. This will be used in interactions and logging.",
+            "top_p": "(top_p) - Controls the diversity of AI responses by limiting the next word choice to the top P percent. Helps in making the conversation more unpredictable.",
+            "typical_p": "(typical_p) - Adjusts response diversity more smoothly compared to Top P by focusing on the most likely tokens, aiming for a balance between randomness and relevance.",
+            "top_k": "(top_k) - Limits the choices for the next word to the top K options to steer the conversation. A lower number can make responses more focused.",
+            "temperature": "(temperature) - Tweaks randomness in response generation. Higher values lead to more varied responses, while lower values make them more predictable.",
+            "length_penalty": "(length_penalty) - Penalizes longer responses to encourage more concise outputs. A higher penalty discourages rambling.",
+            "repetition_penalty": "(repetition_penalty) - Reduces repetition in responses. Higher values decrease the likelihood of repeating words, making responses more diverse.",
+            "response_length": "(response_length) - Sets the maximum length for responses. Longer lengths allow for more detailed answers but can also make the AI more verbose.",
+            "stm_size": "(stm_size) - Sets the number of short term memories to be selected for working memory. Incrases VRAM usage when increased.",
+            "ltm_size": "(ltm_size) - Sets the number of long term memories to be selected for working memory. Increases VRAM usage when increased.",
+            "num_keywords": "(num_keywords) - Number of keywords extracted from the input for context searching.",
+            "num_beams": "(num_beams) - Number of alternatives explored for generating responses. Higher numbers increase response quality at the cost of speed and VRAM",
+            "persistent": "(persistent) - Whether the AI's conversation history is persistent across sessions.",
+            "messages_editor": "(system messages) - Defines the AI's personality"
+        }
+
+        window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
     ai=AI()
     # Define the maximum label width for uniformity
     label_width = 20
@@ -367,7 +387,7 @@ def create_edit_window():
     # System messages section
     # Serialize system_messages for editing
     editable_messages = "\n".join([msg["content"] for msg in ai.system_memory])
-    messages_editor = [[sg.Multiline(default_text=editable_messages, size=(120, 10), key="messages_editor")]]
+    messages_editor = [[sg.Multiline(default_text=editable_messages, size=(120, 10), enable_events=True, key="messages_editor")]]
 
     # Update layout
     layout = [
@@ -385,61 +405,45 @@ def create_edit_window():
         [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
         [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
         [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
+        [sg.Text("Help: Explanations of parameters will appear here.", size=(100, 2), key="explanation", text_color="green")],
         [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
         [sg.Column(messages_editor, vertical_alignment="top")],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
 
-    window = sg.Window("Edit Personality Configuration", layout, modal=True, icon="./resources/bai.ico")
-    return window
+    window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon="./resources/bai.ico")
+    window['name'].Widget.bind('<Button-1>', lambda _, window=window, evname="name": update_help(window, evname))
+    window['top_p'].Widget.bind('<Button-1>', lambda _, window=window, evname="top_p": update_help(window, evname))
+    window['typical_p'].Widget.bind('<Button-1>', lambda _, window=window, evname="typical_p": update_help(window, evname))
+    window['top_k'].Widget.bind('<Button-1>', lambda _, window=window, evname="top_k": update_help(window, evname))
+    window['temperature'].Widget.bind('<Button-1>', lambda _, window=window, evname="temperature": update_help(window, evname))
+    window['length_penalty'].Widget.bind('<Button-1>', lambda _, window=window, evname="length_penalty": update_help(window, evname))
+    window['repetition_penalty'].Widget.bind('<Button-1>', lambda _, window=window, evname="repetition_penalty": update_help(window, evname))
+    window['response_length'].Widget.bind('<Button-1>', lambda _, window=window, evname="response_length": update_help(window, evname))
+    window['stm_size'].Widget.bind('<Button-1>', lambda _, window=window, evname="stm_size": update_help(window, evname))
+    window['ltm_size'].Widget.bind('<Button-1>', lambda _, window=window, evname="ltm_size": update_help(window, evname))
+    window['num_keywords'].Widget.bind('<Button-1>', lambda _, window=window, evname="num_keywords": update_help(window, evname))
+    window['num_beams'].Widget.bind('<Button-1>', lambda _, window=window, evname="num_beams": update_help(window, evname))
+    window['persistent'].Widget.bind('<Button-1>', lambda _, window=window, evname="persistent": update_help(window, evname))
+    window['messages_editor'].Widget.bind('<Button-1>', lambda _, window=window, evname="messages_editor": update_help(window, evname))
 
-def create_create_window():
-    """
-    Creates the window for editing the personality configuration
-    
-    Parameters:
-    - None
-    
-    Returns:
-    - window: a handle to the created window
-    """
-    ai=AI()
-    # Define the maximum label width for uniformity
-    label_width = 20
-    string_width = 16
-    num_width = 16
-    #The layout allows editing of system messages if they are enabled
-    # System messages section
-    messages_editor = [[sg.Multiline(size=(120, 10), key="messages_editor")]]
-
-    # Update layout
-    layout = [
-        [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
-        [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
-        [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
-        [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
-        [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
-        [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
-        [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
-        [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True),  sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
-        [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
-        [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
-        [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
-        [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
-        [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
-        [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-        [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
-        [sg.Column(messages_editor, vertical_alignment="top")],
-        [sg.Button("Save"), sg.Button("Cancel")]
-    ]
-
-    window = sg.Window("Create Personality Configuration", layout, modal=True, icon="./resources/bai.ico")
     return window
 
 def create_settings_window():
     """
     Function for creating the window to edit the programs settings
     """
+    def update_help(window, evname):
+        explanations = {
+            "username": "(Username) - What you wanna be called. Used in the chat log and certain templates.",
+            "backend": "(Backend) - The backend to run inferences on. 'auto' is generally better than 'cuda' for CUDA.",
+            "quant": "(Model Quantization) - The quantization to load the model with. Saves VRAM at a slight cost to accuracy.",
+            "template": "(Model Template) - The template for formatting the model's input. Try 'HF Automatic' if unsure.",
+            "default_model_path": "(Default Model) - The model to load on startup.",
+            "default_personality_path": "(Default Personality) - The personality to load on startup.",
+            "stream": "(Stream output to STDOUT?) - Whether to stream the generated tokens to stdout as they are generated."
+        }
+        window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
     ps = ProgramSettings()
     label_width = 20
     string_width = 36
@@ -447,16 +451,24 @@ def create_settings_window():
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
     template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
-    [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username")],
-    [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="backend", readonly=True)],
-    [sg.Text("Model Quantization:", size=(label_width,1)), sg.Combo(quant_options, default_value=ps.quant, key="quant", readonly=True)],
-    [sg.Text("Model Template:", size=(label_width,1)), sg.Combo(template_options, default_value=ps.template, key="template", readonly=True)],
-    [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, key="default_model_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_model_path")],
-    [sg.Text("Default Personality:", size=(label_width,1)), sg.Input(default_text=ps.default_personality, key="default_personality_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_personality_path")],
-    [sg.Text("Stream output to STDOUT?", size=(label_width,1)), sg.Checkbox("", default=ps.do_stream, key="stream")],
+    [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username", enable_events=True)],
+    [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="backend", readonly=True, enable_events=True)],
+    [sg.Text("Model Quantization:", size=(label_width,1)), sg.Combo(quant_options, default_value=ps.quant, key="quant", readonly=True, enable_events=True)],
+    [sg.Text("Model Template:", size=(label_width,1)), sg.Combo(template_options, default_value=ps.template, key="template", readonly=True, enable_events=True)],
+    [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, enable_events=True, key="default_model_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_model_path")],
+    [sg.Text("Default Personality:", size=(label_width,1)), sg.Input(default_text=ps.default_personality , enable_events=True, key="default_personality_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_personality_path")],
+    [sg.Text("Stream output to STDOUT?", size=(label_width,1)), sg.Checkbox("", default=ps.do_stream, key="stream", enable_events=True)],
+    [sg.Text("Help: Explanations of settings will appear here.", size=(100, 2), key="explanation", text_color="green")],
     [sg.Button("Save"), sg.Button("Cancel")]
     ]
-    window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.ico")
+    window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.ico", finalize=True)
+    window['username'].Widget.bind('<Button-1>', lambda _, window=window, evname="username": update_help(window, evname))
+    window['backend'].Widget.bind('<Button-1>', lambda _, window=window, evname="backend": update_help(window, evname))
+    window['quant'].Widget.bind('<Button-1>', lambda _, window=window, evname="quant": update_help(window, evname))
+    window['template'].Widget.bind('<Button-1>', lambda _, window=window, evname="template": update_help(window, evname))
+    window['default_model_path'].Widget.bind('<Button-1>', lambda _, window=window, evname="default_model_path": update_help(window, evname))
+    window['default_personality_path'].Widget.bind('<Button-1>', lambda _, window=window, evname="default_personality_path": update_help(window, evname))
+    window['stream'].Widget.bind('<Button-1>', lambda _, window=window, evname="stream": update_help(window, evname))
     return window
 
 def handle_settings_event():
@@ -465,7 +477,6 @@ def handle_settings_event():
     """
     ps = ProgramSettings()
     settings_window = create_settings_window()
-
     while True:
         event, values = settings_window.read(timeout=50)
         if event in (sg.WIN_CLOSED, "Cancel"):

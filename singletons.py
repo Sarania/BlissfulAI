@@ -18,7 +18,7 @@ class SingletonMeta(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(SingletonMeta, cls).__call__(*Parameters, **kwParameters)
         return cls._instances[cls]
-    
+
 def log(input_string): #this is duplicated here to avoid dependencies during initial setup
     """
     Logs the string to the logfile
@@ -53,7 +53,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._username = "User" #Username, saved to file
         self._template = "HF Automatic" #Selected template, saved to file
         self._cuda_version = "None"
-        self._VERSION = "0.9.0 Alpha" #Program version
+        self._VERSION = "0.9.5 RC1" #Program version
 
     @property
     def backend(self):
@@ -177,12 +177,12 @@ class ProgramSettings(metaclass=SingletonMeta):
     def template(self):
         """Gets the current template setting."""
         return self._template
-    
+
     @property
     def cuda_version(self):
         """Returns the set cuda version"""
         return self._cuda_version
-    
+
     @cuda_version.setter
     def cuda_version(self, new_version):
         """Sets a new version of CUDA"""
@@ -270,6 +270,9 @@ class ProgramSettings(metaclass=SingletonMeta):
         # Ensure to add or update other settings from the file as needed.
 
         return instance
+    def get_program_settings():
+        return ProgramSettings()
+
 
 
 

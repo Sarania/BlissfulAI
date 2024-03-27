@@ -29,21 +29,20 @@ def download_model_ui():
     [sg.Text("Model URL:", size=(20, 1)), sg.Input(default_text=None, key="model_url", right_click_menu=ccp_right_click_menu)],
     [sg.Button("Save"), sg.Button("Cancel")]
     ]
-    
+
     window = sg.Window("BAI Model Download", layout, modal=True, icon="./resources/bai.ico")
-    
+
     while True:
         event, values = window.read(timeout=50)
         if event in (sg.WIN_CLOSED, "Cancel"):
             window.close()
-            exit(0)
-            break
+            sys.exit(0)
         if event == "Save":
             window.close()
             return values["model_url"]
         if event in ["Copy ", "Cut", "Paste"]:
             handle_ccp(event, window)
-            
+
 def handle_ccp(event, window):
     """
     Handles cut/copy/paste operations
@@ -82,7 +81,7 @@ def handle_ccp(event, window):
             window["model_url"].Widget.insert(tk.INSERT, text)
         except tk.TclError:
             print("Clipboard error - clipboard empty or contains non text data")
-   
+
 def transform_url(url):
     """Parses a url and generates the name of a directory we gotta deal with """
     # Parse the URL to get the path part
