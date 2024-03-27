@@ -13,7 +13,6 @@ def create_setup_window():
     """
     Function for creating the window to edit the programs settings
     """
-    #ps = ProgramSettings()
     label_width = 20
     cuda_options = ["12.1", "11.8", "None"]
     layout = [
@@ -29,7 +28,6 @@ def handle_setup_event():
     """
     Function for handling the settings event
     """
-    #ps = ProgramSettings()
     settings_window = create_setup_window()
 
     while True:

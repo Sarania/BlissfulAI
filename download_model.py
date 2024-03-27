@@ -11,8 +11,10 @@ import shutil
 import sys
 import warnings
 import logging
+import tkinter as tk
 from urllib.parse import urlparse, unquote
 from huggingface_hub import snapshot_download
+import PySimpleGUI as sg
 
 # Suppress all warnings
 warnings.filterwarnings("ignore")
@@ -20,6 +22,67 @@ warnings.filterwarnings("ignore")
 # Set logging level to ERROR to suppress non-critical logs
 logging.basicConfig(level=logging.ERROR)
 
+def download_model_ui():
+    """Simple UI for downloading models from HF"""
+    ccp_right_click_menu = ["", ["Copy", "Cut", "Paste"]]
+    layout = [
+    [sg.Text("Model URL:", size=(20, 1)), sg.Input(default_text=None, key="model_url", right_click_menu=ccp_right_click_menu)],
+    [sg.Button("Save"), sg.Button("Cancel")]
+    ]
+    
+    window = sg.Window("BAI Model Download", layout, modal=True, icon="./resources/bai.ico")
+    
+    while True:
+        event, values = window.read(timeout=50)
+        if event in (sg.WIN_CLOSED, "Cancel"):
+            window.close()
+            exit(0)
+            break
+        if event == "Save":
+            window.close()
+            return values["model_url"]
+        if event in ["Copy ", "Cut", "Paste"]:
+            handle_ccp(event, window)
+            
+def handle_ccp(event, window):
+    """
+    Handles cut/copy/paste operations
+    
+    Parameters:
+    - event: The event to parse
+    - window: Handle to the window we are interacting with
+
+    """
+    if event == "Copy":
+        try:
+            text = window["model_url"].Widget.selection_get()
+            window.TKroot.clipboard_clear()
+            window.TKroot.clipboard_append(text)
+        except tk.TclError:
+            print("Nothing selected to copy!")
+    elif event == "Cut":
+        try:
+            text = window["model_url"].Widget.selection_get()
+            window.TKroot.clipboard_clear()
+            window.TKroot.clipboard_append(text)
+            window["model_url"].Widget.delete("sel.first", "sel.last")
+        except tk.TclError:
+            print("Nothing selected to cut!")
+    elif event == "Paste":
+        try:
+            # Check if there"s any text selected for replacement
+            window["model_url"].Widget.selection_get()
+            # If there is, delete the selected text first
+            window["model_url"].Widget.delete("sel.first", "sel.last")
+        except tk.TclError:
+            # No text is selected; proceed without deleting
+            pass  # No action required if no text is selected
+        try:
+            text = window.TKroot.clipboard_get()
+            window["model_url"].Widget.insert(tk.INSERT, text)
+        except tk.TclError:
+            print("Clipboard error - clipboard empty or contains non text data")
+   
 def transform_url(url):
     """Parses a url and generates the name of a directory we gotta deal with """
     # Parse the URL to get the path part
@@ -71,9 +134,9 @@ def download_hf_repo(repo_url):
         shutil.rmtree(os.path.join(output_dir, ".locks"))
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python download_model.py <Hugging Face repository URL>")
-        sys.exit(1)
-
-    work_url = sys.argv[1]
-    download_hf_repo(work_url)
+    if len(sys.argv) == 2:
+        work_url = sys.argv[1]
+        download_hf_repo(work_url)
+    else:
+        model_dl = download_model_ui()
+        download_hf_repo(model_dl)
