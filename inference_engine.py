@@ -90,7 +90,6 @@ def custom_template():
     ps = ProgramSettings()
     llm = LanguageModel()
     prompt=ai.working_memory
-    log(ai.working_memory)
     cprompt = ""
     if ps.template == "HF Automatic": #Use HF transformers build in apply_chat_template, doesn't always detect things properly
         cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
@@ -142,7 +141,7 @@ def custom_template():
                 cprompt+= ai.personality_definition["name"] + ": "
                 cprompt+=entry["content"] + "\n"
         cprompt+= "### Response: \n"
-    log(cprompt)
+    log(f"Templated prompt: {cprompt}")
     return cprompt
 
 def generate_model_response():
@@ -266,7 +265,7 @@ def update_working_memory(user_message):
     # Insert system messages at the beginning of the working memory.
     new_working_memory = ai.system_memory + selected_memories
     log(f"Working memory updated. Entries: {len(new_working_memory)}")
-    log(new_working_memory)
+    log(f"New working memory: {new_working_memory}")
     return new_working_memory
 
 
@@ -373,11 +372,6 @@ def post_process(input_string):
     else:
         fstring = f"{ai.working_memory[-2]['content']} \n<|user|>\n{ai.working_memory[-1]['content']} \n<|assistant|>\n" #Sometimes the LLM writes more parts than it's supposed to, so we need to make sure we display the correct response
         response_start = input_string.rfind(fstring) + len(fstring)
-        log("fstring ------------------------------------------------------")
-        log(repr(fstring))
-        log(repr(input_string))  # Adjust indices as necessary
-        log("-----------------------------------------------")
-        log(response_start)
         response = input_string[response_start:]
         tag_index=response.find("</s>")
         if tag_index != -1:

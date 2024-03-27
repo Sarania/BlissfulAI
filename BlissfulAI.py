@@ -293,8 +293,6 @@ def update_hard_memory():
         personality_name = ai.personality_definition["name"]
         core_path = os.path.join(ai.personality_path, f"{personality_name}.json")
         sys_path = os.path.join(ai.personality_path, f"{personality_name}_system_messages.json")
-        log(core_path)
-        log(sys_path)
         with open(core_path, "w", encoding="utf-8") as file:
             json.dump(filtered_messages, file, indent=4)
         with open(sys_path, "w", encoding="utf-8") as file:
@@ -639,7 +637,7 @@ def load_personality(personality_path):
             with open(system_message_path, "r", encoding="utf-8") as sm_file:
                 ai.system_memory=json.load(sm_file)
             ai.num_sys_msg=len(ai.system_memory)
-            log(ai.system_memory)
+            log(f"AI System Memory: {ai.system_memory}")
             log(str(ai.num_sys_msg) + " system messages.")
             memory = [{**item, "content": item["content"].replace("\n", "")} for item in memory] # clean the \n
         memory_failed=0
