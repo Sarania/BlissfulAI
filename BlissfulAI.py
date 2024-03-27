@@ -405,7 +405,7 @@ def create_edit_window():
         [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
         [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
         [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-        [sg.Text("Help: Explanations of parameters will appear here.", size=(100, 2), key="explanation", text_color="green")],
+        [sg.Text("Help: Explanations of parameters will appear here.", size=(60, 2), key="explanation", text_color="green")],
         [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
         [sg.Column(messages_editor, vertical_alignment="top")],
         [sg.Button("Save"), sg.Button("Cancel")]
@@ -458,7 +458,7 @@ def create_settings_window():
     [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, enable_events=True, key="default_model_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_model_path")],
     [sg.Text("Default Personality:", size=(label_width,1)), sg.Input(default_text=ps.default_personality , enable_events=True, key="default_personality_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_personality_path")],
     [sg.Text("Stream output to STDOUT?", size=(label_width,1)), sg.Checkbox("", default=ps.do_stream, key="stream", enable_events=True)],
-    [sg.Text("Help: Explanations of settings will appear here.", size=(100, 2), key="explanation", text_color="green")],
+    [sg.Text("Help: Explanations of settings will appear here.", size=(60, 2), key="explanation", text_color="green")],
     [sg.Button("Save"), sg.Button("Cancel")]
     ]
     window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.ico", finalize=True)
