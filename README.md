@@ -2,6 +2,10 @@
 
 Welcome to **BlissfulAI**, a work in progress chatbot/story writing front end for LLMs. Note the story writing part is not yet released into the repository, but soon!
 
+<p align="center">
+  <img src="resources/baiabout.png" alt="BlissfulAI"/>
+</p>
+
 ## Features
 
 - Character driven interactive chat driven by large language models + guided uncensored creative story writing in one purple python package!
@@ -46,7 +50,7 @@ cd BlissfulAI
 
 To create a virtual environment, run:
 
-```python3 -m venv venv```
+```python -m venv venv```
 
 
 Activate the virtual environment:
@@ -55,7 +59,7 @@ Activate the virtual environment:
 
 ```.\venv\Scripts\activate```
 
-- On Unix/MacOS:
+- On Linux:
 
 ```. ./venv/bin/activate```
 
@@ -82,7 +86,7 @@ You can find other models on [HuggingFace](https://huggingface.co/models?sort=tr
 
 ```python download_model.py https://huggingface.co/dreamgen/opus-v1.2-7b```
 
-This will download the model into the "opus-v1.2-7b" subdirectory of BlissfulAI, from which you can load it into the program.
+This will download the model into the "opus-v1.2-7b" subdirectory of BlissfulAI, from which you can load it into the program. Note this script ONLY works with models on [HuggingFace](https://huggingface.co)! Also for the moment, BlissfulAI only supports loading unquantized models in the safetensors format. GGUF files will not work. Models quantized with AWQ or GPTQ won't work(support is coming whenever I get a GPU capable of working with that or someone else adds it!) For the time being, on-the-fly quantization of models is provided by [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) instead! It's exactly 92%* as good and works with my hardware. (*This number is completely made up but it is genuinely quite good.)
 
 You're now ready to go! Make sure to always activate the venv before running the program or it's utilities!
 
@@ -92,11 +96,15 @@ You're now ready to go! Make sure to always activate the venv before running the
 
 ### Beginners:
 
-When you first run the program, make sure to check out the Settings dialog and set up your backend, quantization, and other settings. Quantization is necessary for loading large models, explaining it is beyond the scope of this project. Suffice it to say, quantization sacrifices a little bit of quality for a lot less memory usage. If you are running out of VRAM, try using quantization. Next, you will need to create a new personality to interact with. Give it a name and adjust the settings to your liking. If you're unsure, leave the settings at default except for "Name" and the system messages section. This system messages define the character. [Example of some system messages and their effect.](/resources/baiexample.png) You can have as many system messages as you like, but too many tends to dillute their effect. I try to keep it around 8 or less. If you wish to know further information about the various parameters you can adjust, the internet is a good place to start but experimentation is best!
+When you first run the program, make sure to check out the Settings dialog and set up your username, backend, quantization, and other settings. Quantization is necessary for loading large models, explaining it is beyond the scope of this project. Suffice it to say, quantization sacrifices a little bit of quality for a lot less memory usage. If you are running out of VRAM, try using quantization. Next, you will need to create a new personality to interact with. Give it a name and adjust the settings to your liking. If you're unsure, leave the settings at default except for "Name" and the system messages section. This system messages define the character. [Example of some system messages and their effect.](/resources/baiexample.png) You can have as many system messages as you like, but too many tends to dillute their effect. I try to keep it around 8 or less. If you wish to know further information about the various parameters you can adjust, the internet is a good place to start but experimentation is best!
+
+## Templates:
+
+Different LLMs expect their inputs to be formatted in different ways. Templates are the somewhat messy solution to this. The chat history is stored as a list of dictionaries. This list is processed in various ways to produce the model's input. Some models like <|assistant|> and <|user|> tags. Some like <|IM_START|> and <|IM_END|>. The list goes on. Models are somewhat flexible in which template they will work with but they tend to produce their best results when matched with the template they were trained with. If you know the model's template style, you can set it directly. For instance for Zephyr 7B β you can set the template to "BAI Zephyr" which will use the BlissfulAI implementation of the Zephyr style template. The "HF Automatic" setting is different. It uses the apply_chat_template() method from HF transformers to attempt to autodetect and use the best template. It sometimes works great, it sometimes doesn't - for instance OpenZephyrChat 7B uses the Zephyr template style, but "HF Automatic" won't detect it properly. If you are getting broken results or complaints about the formatting, try a different template.
 
 ## Tips:
-- If you're not using quantization and you have CUDA, it's highly recommended to set the backend to "auto" to let torch handle memory management! This can allow you to sometimes load larger models than you have VRAM, for instance I can load an unquantized 7B model.
-- Moden Nvidia drivers support falling back to system memory when VRAM is exhausted. This is useful but WILL slow things down significantly if more than ~5% of the model is in system memory. Generally "auto" handles this more gracefully than "cuda" which will load the entire model into CUDA's context, taking up the full amount of VRAM.
+- If you're not using quantization and you have CUDA, it's highly recommended to set the backend to "auto" to let torch handle memory management! This can allow you to sometimes load larger models than you have VRAM, for instance I can load an unquantized 7B model on an 8GB card this way.
+- Modern Nvidia drivers support falling back to system memory when VRAM is exhausted. This is useful but WILL slow things down significantly if more than ~5% of the model is in system memory. Generally "auto" handles this more gracefully than "cuda" which will load the entire model into CUDA's context, taking up the full amount of VRAM.
 - If quantization is enabled, the backend setting is ignored. This is because bitsandbytes automatically manages that in those cases.
 - The character chat logs and parameters are just formatted JSON files. You can edit them freely but editing the messages themselves, the timestamp or the fingerprint WILL cause the memory integrity check to fail. You can fix this by passing "--fpfix" on the command line.
 
