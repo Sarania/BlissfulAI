@@ -882,7 +882,6 @@ parser.add_argument("-p", "--personality", type=str, default=None)
 parser.add_argument("--suppress", type=bool, default=True)
 parser.add_argument("-d", "--device", type=str, default="cuda")
 parser.add_argument("--fpfix", action="store_true")
-parser.add_argument("--hf", action="store_true")
 parser.add_argument("--stream", action="store_true")
 args = parser.parse_args()
 if __name__ == "__main__":
