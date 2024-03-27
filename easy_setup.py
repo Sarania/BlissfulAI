@@ -14,6 +14,7 @@ def create_setup_window():
     """
     Function for creating the window to edit the programs settings
     """
+    sg.theme("Purple")
     ps = ProgramSettings()
     label_width = 20
     cuda_options = ["12.1", "11.8", "None"]

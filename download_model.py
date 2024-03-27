@@ -24,6 +24,7 @@ logging.basicConfig(level=logging.ERROR)
 
 def download_model_ui():
     """Simple UI for downloading models from HF"""
+    sg.theme("Purple")
     ccp_right_click_menu = ["", ["Copy", "Cut", "Paste"]]
     layout = [
     [sg.Text("Model URL:", size=(20, 1)), sg.Input(default_text=None, key="model_url", right_click_menu=ccp_right_click_menu)],
