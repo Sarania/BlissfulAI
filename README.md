@@ -1,9 +1,10 @@
-# BlissfulAI
+# BlissfulAI  <img src="resources/baiabout.png" alt="BlissfulAI" width="64" height="64"/>
+
 
 Welcome to **BlissfulAI**, a work in progress chatbot/story writing front end for LLMs. Note the story writing part is not yet released into the repository, but soon!
 
 <p align="center">
-  <img src="resources/baiabout.png" alt="BlissfulAI"/>
+  <img src="resources/britney2.png" alt="Example interaction"/>
 </p>
 
 ## Features
