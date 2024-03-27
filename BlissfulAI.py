@@ -195,27 +195,27 @@ def handle_create_event():
             window.close()
             break
         if event == "Save":
-            selected_folder=""
-            while selected_folder == "":
-                selected_folder=select_folder()
-
-            current_dir = selected_folder
-            path = os.path.join(current_dir, values["name"])
-            os.makedirs(path, exist_ok=False)
-            ai.personality_path=path
-            for key, value in ai.personality_definition.items():
-                expected_type=type(value)
-                ai.personality_definition[key] = expected_type(values[key])
-            log("Personality_defition updated.")
-            # Split the text area content into lines, each representing a message"s content
-            edited_contents = values["messages_editor"].split("\n")
-            # Update system_messages with the new contents
-            system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
-            ai.system_memory = system_messages
-            ps.personality_status="loaded"
-            update_hard_memory()
-            window.close()
-            break
+            selected_folder=select_folder()
+            if selected_folder != "":
+                current_dir = selected_folder
+                path = os.path.join(current_dir, values["name"])
+                os.makedirs(path, exist_ok=False)
+                ai.personality_path=path
+                for key, value in ai.personality_definition.items():
+                    expected_type=type(value)
+                    ai.personality_definition[key] = expected_type(values[key])
+                log("Personality_defition updated.")
+                # Split the text area content into lines, each representing a message"s content
+                edited_contents = values["messages_editor"].split("\n")
+                # Update system_messages with the new contents
+                system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
+                ai.system_memory = system_messages
+                ps.personality_status="loaded"
+                update_hard_memory()
+                window.close()
+                break
+            else:
+                continue
         if event in numeric_fields:
            # We received a change in one of our number only fields
             if values[event]:  # Check if values[event] is not blank
