@@ -51,7 +51,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._model_status = "unloaded" #Current status of the model, not saved
         self._personality_status = "unloaded" #Current status of the personality, not saved
         self._username = "User" #Username, saved to file
-        self._template = "HF Automatic" #Selected template, saved to file
+        self._template = "BAI Opus" #Selected template, saved to file
         self._cuda_version = "None"
         self._VERSION = "0.9.5 RC1" #Program version
 
@@ -237,13 +237,13 @@ class ProgramSettings(metaclass=SingletonMeta):
         """
         # Default settings as a fallback
         default_settings = {
-            "_backend": "cpu",
+            "_backend": "auto",
             "_quant": "None",
             "_default_model": "",
             "_default_personality": "",
             "_do_stream": False,
             "_username": "User",
-            "_template": "HF Automatic"
+            "_template": "BAI Opus"
             # Add or update other default settings here as needed.
         }
 
