@@ -43,7 +43,6 @@ import PySimpleGUI as sg
 
 class LanguageModel():
     """
-    Represents a language model within a singleton pattern to ensure availability across all modules.
     This class manages the language model, its path, tokenizer, and an optional streaming interface.
 
     Attributes:
