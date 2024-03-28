@@ -1,0 +1,10 @@
+accelerate>=0.28.0
+bitsandbytes>=0.43.0
+huggingface-hub>=0.22.1
+psutil>=5.9.8
+pynvml>=11.5.0
+PySimpleGUI==4.60.5
+spacy>=3.7.4
+transformers>=4.39.1
+https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.7.3/en_core_web_trf-3.7.3-py3-none-any.whl
+

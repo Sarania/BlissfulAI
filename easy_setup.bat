@@ -20,7 +20,7 @@ CALL install_torch.bat
 del install_torch.bat
 
 echo Installing BlissfulAI requirements...
-pip install -r requirements.txt
+pip install -r windows_requirements.txt
 
 echo Done.
 pause

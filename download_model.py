@@ -98,12 +98,17 @@ def transform_url(url):
     return f"models--{transformed}"
 
 def move_contents_and_cleanup(source_dir, target_dir):
-    """moves files"""
+    """Move files and clean up"""
     # Move files from source to target directory
     for filename in os.listdir(source_dir):
-        shutil.move(os.path.join(source_dir, filename), target_dir)
+        source_path = os.path.join(source_dir, filename)
+        target_path = os.path.join(target_dir, filename)
+        # Resolve symlink if it exists
+        real_source_path = os.path.realpath(source_path)
+        # Copy the actual file to the target directory
+        shutil.copy2(real_source_path, target_path)
     # Remove the source directory
-    os.rmdir(source_dir)
+    shutil.rmtree(source_dir)
 
 def download_hf_repo(repo_url):
     """Download a repo for HF and format it in a sane way for the user"""

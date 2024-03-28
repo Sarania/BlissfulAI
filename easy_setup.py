@@ -8,7 +8,12 @@ Created on Wed Mar 27 13:29:47 2024
 import sys
 import platform
 from singletons import ProgramSettings
-import PySimpleGUI as sg
+try:
+    import PySimpleGUI as sg
+except ImportError:
+    sys.exit(1)
+
+
 
 def create_setup_window():
     """

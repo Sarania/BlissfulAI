@@ -37,8 +37,9 @@ from inference_engine import threaded_model_response, load_model
 from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, nvidia
 from singletons import AI, ProgramSettings
 import torch
-import win32api
-import win32con
+if sys.platform == "win32":
+    import win32api
+    import win32con
 import PySimpleGUI as sg
 
 class LanguageModel():
@@ -599,7 +600,8 @@ def handle_settings_event():
             settings_window.close()
             break
         if event == "Save":
-            ps.model_status = "reload needed"  if ps.quant != values["quant"] else ps.model_status
+            if ps.model_status != "unloaded":
+                ps.model_status = "reload needed"  if ps.quant != values["quant"] else ps.model_status
             ps.backend = values["backend"]
             ps.quant = values["quant"]
             ps.default_model = values["default_model_path"]
@@ -881,7 +883,8 @@ def main():
     update_conversation_history(window)
 
     #Set this up to try to catch shutdown/restart etc
-    win32api.SetConsoleCtrlHandler(shutdown_handler, True)
+    if sys.platform == "win32":
+        win32api.SetConsoleCtrlHandler(shutdown_handler, True)
 
     if args.model is not None:
         llm.model_path = args.model
