@@ -52,7 +52,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._personality_status = "unloaded" #Current status of the personality, not saved
         self._username = "User" #Username, saved to file
         self._template = "BAI Opus" #Selected template, saved to file
-        self._cuda_version = "None"
+        self._cuda_version = "None" #
         self._VERSION = "0.9.5 RC1" #Program version
 
     @property
@@ -178,16 +178,6 @@ class ProgramSettings(metaclass=SingletonMeta):
         """Gets the current template setting."""
         return self._template
 
-    @property
-    def cuda_version(self):
-        """Returns the set cuda version"""
-        return self._cuda_version
-
-    @cuda_version.setter
-    def cuda_version(self, new_version):
-        """Sets a new version of CUDA"""
-        self._cuda_version = new_version
-
     @template.setter
     def template(self, value):
         """Sets the template setting, ensuring it is a string.
@@ -198,6 +188,16 @@ class ProgramSettings(metaclass=SingletonMeta):
         if not isinstance(value, str) and value is not None:
             raise ValueError("template must be a string")
         self._template = value
+
+    @property
+    def cuda_version(self):
+        """Returns the set cuda version"""
+        return self._cuda_version
+
+    @cuda_version.setter
+    def cuda_version(self, new_version):
+        """Sets a new version of CUDA"""
+        self._cuda_version = new_version
 
     @property
     def VERSION(self):
@@ -216,7 +216,6 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_do_stream": self._do_stream,
             "_username": self._username,
             "_template": self._template,
-            # Ensure to add or update other settings here as needed.
         }
         # Write the dictionary to a file as JSON
         with open("./settings.json", "w", encoding="utf-8") as file:
@@ -267,14 +266,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         instance.do_stream = data.get("_do_stream", default_settings["_do_stream"])
         instance.username = data.get("_username", default_settings["_username"])
         instance.template = data.get("_template", default_settings["_template"])
-        # Ensure to add or update other settings from the file as needed.
-
         return instance
-    def get_program_settings():
-        return ProgramSettings()
-
-
-
 
 class AI(metaclass=SingletonMeta):
     """
