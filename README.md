@@ -37,7 +37,7 @@ VRAM usage will also increase depending on your personality settings, especially
 
 ## Basic Setup:
 
-To get started with **BlissfulAI**, the first thing you need to do is download it. Head to the releases page and download the latest release, then extract it to a location of your choosing. Once that's done, double click either "easy_setup.bat" On Windows or "easy_setup.sh" on Linux(for Linux you might need to make it executable). Follow the instructions and when the UI appears, set up your username and select your desired CUDA version. Then let the installer complete.
+To get started with **BlissfulAI**, the first thing you need to do is download it. Head to the [releases](https://github.com/Sarania/BlissfulAI/releases) page and download the latest release, then extract it to a location of your choosing. Once that's done, double click either "easy_setup.bat" On Windows or "easy_setup.sh" on Linux(for Linux you might need to make it executable). Follow the instructions and when the UI appears, set up your username and select your desired CUDA version. Then let the installer complete.
 
 Now you're gonna need a model to work with. For best results I recommend at least a 7B model. Some good suggestions:
 
