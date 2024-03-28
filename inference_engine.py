@@ -141,7 +141,9 @@ def custom_template(llm):
                 cprompt+=entry["content"] + "\n"
         cprompt+= "### Response: \n"
     log(f"Templated prompt: {cprompt}")
-    return cprompt
+    response_start=len(cprompt)
+    log(f"Response start: {response_start}")
+    return cprompt, response_start
 
 def generate_model_response(llm):
     """
@@ -157,7 +159,7 @@ def generate_model_response(llm):
         if ps.backend in ["auto", "cuda"]:
             torch.cuda.empty_cache()
     gc.collect()
-    cprompt=custom_template(llm)
+    cprompt, response_start=custom_template(llm)
     log("Tokenizing...")
     if ps.backend in ("cuda", "auto"):
         log("Prompt to cuda...")
@@ -193,7 +195,7 @@ def generate_model_response(llm):
             torch.cuda.empty_cache()
     gc.collect()
     feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return post_process(feedback)
+    return post_process(feedback, response_start)
 
 @timed_execution
 def update_working_memory(user_message):
@@ -311,7 +313,7 @@ def extract_keywords(sentence, personality_definition):
     log("Extracted keywords: " + str(keywords))
     return keywords
 
-def post_process(input_string):
+def post_process(input_string, response_start):
     """
     Post processes the model output to prepare it for the user
     
@@ -322,12 +324,9 @@ def post_process(input_string):
     - response: The processed string.
 
     """
-    ai = AI()
     ps = ProgramSettings()
     punctuation_set = {"!", ".", "?", "*", ")"}
     if ps.template == "BAI SynthIA":
-        fstring = f"{ai.working_memory[-2]['content']}\nUSER:\n{ai.working_memory[-1]['content']}\nASSISTANT:\n" #Sometimes the LLM writes more USER and ASSISTANT parts, so we need to make sure we display the correct response
-        response_start = input_string.rfind(fstring) + len(fstring)
         response = input_string[response_start:]
         #Here we truncate the output to the last occurence of specific punctuation
         tag_index=response.find("\nUSER:")
@@ -347,8 +346,6 @@ def post_process(input_string):
                 response = response[:-1]
                 response = response.rstrip()
     elif ps.template == "BAI Opus":
-        fstring = f"{ai.working_memory[-2]['content']}<|IM_END|>\n<|IM_START|>text names= {ps.username}\n{ai.working_memory[-1]['content']}<|IM_END|>\n<|IM_START|>text names= {ai.personality_definition['name']}\n" #Sometimes the LLM writes more parts than it's supposed to, so we need to make sure we display the correct response
-        response_start = input_string.rfind(fstring) + len(fstring)
         response = input_string[response_start:]
         tag_index=response.find("<|IM_END|>")
         if tag_index != -1:
@@ -368,8 +365,6 @@ def post_process(input_string):
                     response = response.rstrip()
         response = response.strip()
     else:
-        fstring = f"{ai.working_memory[-2]['content']} \n<|user|>\n{ai.working_memory[-1]['content']} \n<|assistant|>\n" #Sometimes the LLM writes more parts than it's supposed to, so we need to make sure we display the correct response
-        response_start = input_string.rfind(fstring) + len(fstring)
         response = input_string[response_start:]
         tag_index=response.find("</s>")
         if tag_index != -1:

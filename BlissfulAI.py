@@ -158,7 +158,6 @@ class LanguageModel():
         """
         self._streamer = value
 
-
 def open_url(url):
     """
     Simply opens a URL in the default browser
