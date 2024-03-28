@@ -35,11 +35,128 @@ from queue import Queue
 import webbrowser
 from inference_engine import threaded_model_response, load_model
 from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, nvidia
-from singletons import AI, LanguageModel, ProgramSettings
+from singletons import AI, ProgramSettings
 import torch
 import win32api
 import win32con
 import PySimpleGUI as sg
+
+class LanguageModel():
+    """
+    Represents a language model within a singleton pattern to ensure availability across all modules.
+    This class manages the language model, its path, tokenizer, and an optional streaming interface.
+
+    Attributes:
+        _model: Stores the actual language model object.
+        _model_path: Stores the path to the language model file.
+        _tokenizer: Stores the tokenizer associated with the language model.
+        _streamer: Optionally stores a streaming interface for the language model.
+    """
+
+    def __init__(self):
+        """
+        Initializes the language_model instance with default values.
+        """
+        self._model = None
+        self._model_path = None
+        self._tokenizer = None
+        self._streamer = None
+
+    @property
+    def model(self):
+        """
+        Gets the current language model object.
+
+        Returns:
+            The language model object if it exists, otherwise None.
+        """
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        """
+        Sets the language model object, ensuring it has a forward method.
+
+        Args:
+            value: The new language model object to set.
+
+        Raises:
+            ValueError: If the provided model does not have a forward method.
+        """
+        if value is not None and not hasattr(value, "forward"):
+            raise ValueError("model must be a model with a forward method")
+        self._model = value
+
+    @property
+    def model_path(self):
+        """
+        Gets the current path to the language model file.
+
+        Returns:
+            The path to the language model file as a string, or None if not set.
+        """
+        return self._model_path
+
+    @model_path.setter
+    def model_path(self, value):
+        """
+        Sets the path to the language model file.
+
+        Args:
+            value: The new path to the language model file as a string.
+
+        Raises:
+            ValueError: If the provided value is not a string.
+        """
+        if not isinstance(value, str) and value is not None:
+            raise ValueError("model_path must be a string")
+        self._model_path = value
+
+    @property
+    def tokenizer(self):
+        """
+        Gets the tokenizer associated with the language model.
+
+        Returns:
+            The tokenizer object if it exists, otherwise None.
+        """
+        return self._tokenizer
+
+    @tokenizer.setter
+    def tokenizer(self, value):
+        """
+        Sets the tokenizer associated with the language model, ensuring it has an encode method.
+
+        Args:
+            value: The new tokenizer object to set.
+
+        Raises:
+            ValueError: If the provided tokenizer does not have an encode method.
+        """
+        if value is not None and not hasattr(value, "encode"):
+            raise ValueError("tokenizer must have an encode method")
+        self._tokenizer = value
+
+    @property
+    def streamer(self):
+        """
+        Gets the streaming interface associated with the language model.
+
+        Returns:
+            The streaming interface object if it exists, otherwise None.
+        """
+        return self._streamer
+
+    @streamer.setter
+    def streamer(self, value):
+        """
+        Sets the streaming interface for the language model. The method does not enforce
+        any specific requirements on the streamer object, allowing for flexible implementations.
+
+        Args:
+            value: The new streaming interface object to set.
+        """
+        self._streamer = value
 
 
 def open_url(url):
@@ -789,6 +906,13 @@ def main():
             window["-NOTICE-"].update("Model is loading" + animate_ellipsis())
             window.refresh()
         elif ps.model_status == "reload needed":
+            log("Unloading current model...")
+            llm.model = None
+            llm.tokenizer = None
+            gc.collect()
+            if nvidia():
+                if ps.backend in ["auto", "cuda"]:
+                    torch.cuda.empty_cache()
             ps.model_status="loading"
             threading.Thread(target=load_model, args=(llm.model_path, model_queue), daemon=True).start()
 
@@ -812,7 +936,7 @@ def main():
                     window["-INPUT-"].update("")  # Clear the input field
                     log("User message: " + user_message)
                     ps.model_status="inferencing"
-                    threading.Thread(target=threaded_model_response, args=(user_message, model_response), daemon=True).start()
+                    threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response), daemon=True).start()
                 elif ps.model_status in ["inferencing", "loading"]:
                     # Show a popup if the model is busy, loading, or not yet loaded.
                     popup_message(f"The model is currently {ps.model_status}. Please wait before sending messages.")

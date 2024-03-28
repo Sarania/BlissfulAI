@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 from collections import OrderedDict
 from utils import timed_execution, log, generate_hash, nvidia
-from singletons import AI, LanguageModel, ProgramSettings
+from singletons import AI, ProgramSettings
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextStreamer
 import torch
 import spacy
@@ -58,7 +58,7 @@ def load_model(new_model, queue):
         ps.model_status = "unloaded"
 
 @timed_execution
-def threaded_model_response(user_message, model_response):
+def threaded_model_response(llm, user_message, model_response):
     """
     This function is called via a thread and handles updating memory and working memory and then running inference
     
@@ -76,19 +76,18 @@ def threaded_model_response(user_message, model_response):
         ai.working_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
 
         # Run the language models and update the AI's memory with it's output
-        response = generate_model_response()
+        response = generate_model_response(llm)
         now=str(datetime.now())
         identity=generate_hash(str(response)+str(now))
         ai.core_memory.append({"role": "assistant", "content": response, "identity": identity, "rating": "", "date": now})
         model_response.put(response)
 
-def custom_template():
+def custom_template(llm):
     """
     Function to apply a custom template based on the program settings. 
     """
     ai = AI()
     ps = ProgramSettings()
-    llm = LanguageModel()
     prompt=ai.working_memory
     cprompt = ""
     if ps.template == "HF Automatic": #Use HF transformers build in apply_chat_template, doesn't always detect things properly
@@ -144,7 +143,7 @@ def custom_template():
     log(f"Templated prompt: {cprompt}")
     return cprompt
 
-def generate_model_response():
+def generate_model_response(llm):
     """
     This function cleans up the cuda context, prepares the prompt, runs the inference, post processes the output and returns the new output
     
@@ -152,14 +151,13 @@ def generate_model_response():
     - The new output as a string
     """
     ai = AI()
-    llm = LanguageModel()
     ps = ProgramSettings()
     # Clean up the context before inference
     if nvidia():
         if ps.backend in ["auto", "cuda"]:
             torch.cuda.empty_cache()
     gc.collect()
-    cprompt=custom_template()
+    cprompt=custom_template(llm)
     log("Tokenizing...")
     if ps.backend in ("cuda", "auto"):
         log("Prompt to cuda...")
