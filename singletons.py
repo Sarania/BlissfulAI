@@ -52,7 +52,8 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._personality_status = "unloaded" #Current status of the personality, not saved
         self._username = "User" #Username, saved to file
         self._template = "BAI Opus" #Selected template, saved to file
-        self._cuda_version = "None" #
+        self._cuda_version = "None" #Cuda version detecting, not save
+        self._template_guess = "" #Best guess template guess
         self._VERSION = "0.9.6 RC2" #Program version
 
     @property
@@ -198,6 +199,14 @@ class ProgramSettings(metaclass=SingletonMeta):
     def cuda_version(self, new_version):
         """Sets a new version of CUDA"""
         self._cuda_version = new_version
+
+    @property
+    def template_guess(self):
+        return self._template_guess
+
+    @template_guess.setter
+    def template_guess(self, new_guess):
+        self._template_guess = new_guess
 
     @property
     def VERSION(self):

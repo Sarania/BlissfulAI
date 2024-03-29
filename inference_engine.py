@@ -140,7 +140,7 @@ def custom_template(llm):
     elif ps.template =="BAI Zephyr":
         for entry in prompt:
             cprompt += "<|" + entry["role"] + "|>\n"
-            cprompt += entry["content"] + "</s>\n"
+            cprompt += entry["content"] + "\n"
         cprompt += "<|assistant|>"
     elif ps.template == "BAI Alpaca":
         cprompt += "### Instruction: \n"
@@ -340,45 +340,70 @@ def post_process(input_string):
     - response: The processed string.
 
     """
-    ps = ProgramSettings()
-    punctuation_set = {"!", ".", "?", "*", ")"}
-    if ps.template == "BAI SynthIA":
-        end_tag="\nUSER:"
-    elif ps.template == "BAI Zephyr":
-        end_tag="</s>"
-    elif ps.template == "BAI Opus":
-        end_tag="<|IM_END|>"
-    elif ps.template == "BAI Instruct":
-        end_tag="[end of transmission]"
-    else:
-        end_tag="</s>"
-    response_start = input_string.rfind("\u200b\u200b\u200b") + 3
-    response = input_string[response_start:].lstrip("/n")
-    
-    tag_index=response.find(end_tag)
-    if tag_index != -1:
-        response=response[:tag_index]
-    else:
-        code = is_likely_code(response)
-        log(f"Is likely code: {code}")
-        if not code:
-            if len(response) != 0 and response[-1] not in punctuation_set:
-                last_punctuation_index = next((i for i, char in enumerate(
-                    reversed(response)) if char in punctuation_set), None)
-                if last_punctuation_index is not None:
-                    result_string = response[:-last_punctuation_index].rstrip()
-                    response = result_string
-                response = response.strip()
-            if response[-1] == "*":
-                #Check the number of asterisks so we don"t leave a dangling one
-                if response.count("*") % 2 != 0:
-                    response = response[:-1]
-                    response = response.rstrip()
+    if len(input_string) > 0:
+        ps = ProgramSettings()
+        punctuation_set = {"!", ".", "?", "*", ")"}
+        if ps.template == "HF Automatic":
+            if input_string.find("<|IM_END|>") != -1:
+                ps.template_guess = "Opus"
+            elif input_string.find("<|assistant|>") != -1:
+                ps.template_guess = "Zephyr"
+            elif input_string.find("[INST]") != -1:
+                ps.template_guess = "Instruct"
+            elif input_string.find("\nUSER:") != -1:
+                ps.template_guess = "Synthia"
+            log(f"Best guess template: {ps.template_guess}")
+        if ps.template == "BAI SynthIA" or ps.template_guess == "Synthia":
+            end_tag="\nUSER:"
+        elif ps.template == "BAI Zephyr" or ps.template_guess == "Zephyr":
+            end_tag="</s>"
+        elif ps.template == "BAI Opus" or ps.template_guess == "Opus":
+            end_tag="<|IM_END|>"
+        elif ps.template == "BAI Instruct" or ps.template_guess == "Instruct":
+            end_tag="[end of transmission]"
         else:
-            # we need to find the last ``` and make sure truncation occurs after that
-            pass
-    response = response.strip()
-    
+            end_tag="</s>"
+        response_start = input_string.rfind("\u200b\u200b\u200b") + 3
+        
+        if response_start != -1:
+            response = input_string[response_start:].lstrip("\n \u200b")
+        else:
+            response=input_string
+            
+        if ps.template == "BAI Zephyr" or ps.template_guess =="Zephyr":
+            if response.startswith("<|assistant|>"):
+                response = response[13:]
+        elif ps.template == "BAI Opus" or ps.template_guess =="Opus":
+            if response.startswith("<|IM_START|>"):
+                response = response[12:]
+        response = input_string[response_start:].lstrip("\n \u200b")
+        
+        tag_index=response.find(end_tag)
+        if tag_index != -1:
+            response=response[:tag_index]
+        else:
+            code = is_likely_code(response)
+            log(f"Is likely code: {code}")
+            if not code:
+                if len(response) != 0 and response[-1] not in punctuation_set:
+                    last_punctuation_index = next((i for i, char in enumerate(
+                        reversed(response)) if char in punctuation_set), None)
+                    if last_punctuation_index is not None:
+                        result_string = response[:-last_punctuation_index].rstrip()
+                        response = result_string
+                    response = response.strip()
+                if len(response) != 0 and response[-1] == "*":
+                    #Check the number of asterisks so we don"t leave a dangling one
+                    if response.count("*") % 2 != 0:
+                        response = response[:-1]
+                        response = response.rstrip()
+            else:
+                # we need to find the last ``` and make sure truncation occurs after that
+                pass
+        response = response.strip()
+    else:
+        log("Response was blank")
+        response = ""
     return response
 
 def weighted_selection(keyword_memories, weights, max_length):
