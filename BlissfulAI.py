@@ -33,6 +33,7 @@ import warnings
 import tkinter as tk
 from queue import Queue
 import webbrowser
+import PySimpleGUI as sg
 from inference_engine import threaded_model_response, load_model
 from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, nvidia
 from singletons import AI, ProgramSettings
@@ -40,7 +41,7 @@ import torch
 if sys.platform == "win32":
     import win32api
     import win32con
-import PySimpleGUI as sg
+
 
 class LanguageModel():
     """
@@ -111,6 +112,7 @@ class LanguageModel():
         if not isinstance(value, str) and value is not None:
             raise ValueError("model_path must be a string")
         self._model_path = value
+
 
     @property
     def tokenizer(self):
@@ -364,22 +366,22 @@ def popup_message(message):
 
 def select_folder():
     """
-    Allows the user to select a folder
+    Allows the user to select a folder and returns an empty string if no folder is selected.
     
     Parameters:
     - None
     
     Returns:
-    - The selected folder
-    
+    - a string containing the folder path
     """
-    folder = sg.popup_get_folder("Please select a folder:", no_window=True)
-    if folder:  # Check if a folder was selected
-        log(f"Model selected: {folder}")
-        # Here you can do something with the selected folder path
-    else:
+    folder = sg.popup_get_folder("Please select a folder:")
+    if folder is None or folder == "" or len(folder) < 1:  # No folder was selected
+        folder = None
         log("No folder was selected!")
+    else:
+        log(f"Model selected: {folder}")
     return folder
+
 
 def display_message(window, sender_name, message, sender_color, message_color):
     """
@@ -449,7 +451,7 @@ def handle_about_event():
 
     # Centering text (kind of a workaround since PySimpleGUI does not directly support centering multi-line text)
     for element in window.element_list():
-        if isinstance(element, sg.Text) or isinstance(element, sg.Button):
+        if isinstance(element, (sg.Button, sg.Text)):
             element.Widget.pack(expand=True)
 
     # Event Loop
@@ -554,7 +556,7 @@ def create_settings_window():
             "username": "(Username) - What you wanna be called. Used in the chat log and certain templates.",
             "backend": "(Backend) - The backend to run inferences on. 'auto' is generally better than 'cuda' for CUDA.",
             "quant": "(Model Quantization) - The quantization to load the model with. Saves VRAM at a slight cost to accuracy.",
-            "template": "(Model Template) - The template for formatting the model's input. Try 'HF Automatic' if unsure.",
+            "template": "(Model Template) - The template for formatting the model's input.",
             "default_model_path": "(Default Model) - The model to load on startup.",
             "default_personality_path": "(Default Personality) - The personality to load on startup.",
             "stream": "(Stream output to STDOUT?) - Whether to stream the generated tokens to stdout as they are generated."
@@ -565,7 +567,7 @@ def create_settings_window():
     string_width = 36
     backend_options = ["cuda", "cpu", "auto"] if nvidia() is True else ["cpu", "auto"]
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
-    template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
+    template_options = ["BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
     [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username", enable_events=True)],
     [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="backend", readonly=True, enable_events=True)],

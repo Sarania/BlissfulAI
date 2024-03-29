@@ -90,9 +90,7 @@ def custom_template(llm):
     ps = ProgramSettings()
     prompt=ai.working_memory
     cprompt = ""
-    if ps.template == "HF Automatic": #Use HF transformers build in apply_chat_template, doesn't always detect things properly
-        cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
-    elif ps.template =="BAI Opus":
+    if ps.template =="BAI Opus":
         for entry in ai.working_memory:
             if entry["role"] == "user":
                 cprompt+=f"<|IM_START|>text names= {ps.username}\n"
@@ -116,12 +114,12 @@ def custom_template(llm):
         for entry in ai.system_memory:
             cprompt+="[INST] "
             cprompt+=entry["content"]
-            cprompt+="[/INST]+\n"
+            cprompt+="[/INST]\n"
         for entry in ai.working_memory:
             if entry["role"] == "user":
-                cprompt+="<s>[INST] " + entry["content"] + "[/INST]"
+                cprompt+="[INST] " + entry["content"] + "[/INST]"
             if entry["role"] == "assistant":
-                cprompt+=entry["content"] + "</s>\n"
+                cprompt+=entry["content"] + "\n"
     elif ps.template =="BAI Zephyr":
         for entry in prompt:
             cprompt += "<|" + entry["role"] + "|>\n"
@@ -326,63 +324,35 @@ def post_process(input_string, response_start):
     """
     ps = ProgramSettings()
     punctuation_set = {"!", ".", "?", "*", ")"}
-    if ps.template == "BAI SynthIA":
-        response = input_string[response_start:]
-        #Here we truncate the output to the last occurence of specific punctuation
-        tag_index=response.find("\nUSER:")
-        if tag_index != -1:
-            response=response[:tag_index]
-        else:
-            if len(response) != 0 and response[-1] not in punctuation_set:
-                last_punctuation_index = next((i for i, char in enumerate(
-                    reversed(response)) if char in punctuation_set), None)
-                if last_punctuation_index is not None:
-                    result_string = response[:-last_punctuation_index].rstrip()
-                    response = result_string
+    if ps.template == "BAI SynthIA" or ps.template_guess == "Synthia":
+        end_tag="\nUSER:"
+    elif ps.template == "BAI Zephyr" or ps.template_guess == "Zephyr":
+        end_tag="</s>"
+    elif ps.template == "BAI Opus" or ps.template_guess == "Opus":
+        end_tag="<|IM_END|>"
+    elif ps.template == "BAI Instruct" or ps.template_guess == "Instruct":
+        end_tag="[end of transmission]"
+    else:
+        end_tag="</s>"
+    
+    response = input_string[response_start:]
+    tag_index=response.find(end_tag)
+    if tag_index != -1:
+        response=response[:tag_index]
+    else:
+        if len(response) != 0 and response[-1] not in punctuation_set:
+            last_punctuation_index = next((i for i, char in enumerate(
+                reversed(response)) if char in punctuation_set), None)
+            if last_punctuation_index is not None:
+                result_string = response[:-last_punctuation_index].rstrip()
+                response = result_string
             response = response.strip()
         if response[-1] == "*":
             #Check the number of asterisks so we don"t leave a dangling one
             if response.count("*") % 2 != 0:
                 response = response[:-1]
                 response = response.rstrip()
-    elif ps.template == "BAI Opus":
-        response = input_string[response_start:]
-        tag_index=response.find("<|IM_END|>")
-        if tag_index != -1:
-            response=response[:tag_index]
-        else:
-            if len(response) != 0 and response[-1] not in punctuation_set:
-                last_punctuation_index = next((i for i, char in enumerate(
-                    reversed(response)) if char in punctuation_set), None)
-                if last_punctuation_index is not None:
-                    result_string = response[:-last_punctuation_index].rstrip()
-                    response = result_string
-                response = response.strip()
-            if response[-1] == "*":
-                #Check the number of asterisks so we don"t leave a dangling one
-                if response.count("*") % 2 != 0:
-                    response = response[:-1]
-                    response = response.rstrip()
-        response = response.strip()
-    else:
-        response = input_string[response_start:]
-        tag_index=response.find("</s>")
-        if tag_index != -1:
-            response=response[:tag_index]
-        else:
-            #Here we truncate the output to the last occurence of specific punctuation
-            if len(response) != 0 and response[-1] not in punctuation_set:
-                last_punctuation_index = next((i for i, char in enumerate(
-                    reversed(response)) if char in punctuation_set), None)
-                if last_punctuation_index is not None:
-                    result_string = response[:-last_punctuation_index].rstrip()
-                    response = result_string
-        response = response.strip()
-        if response[-1] == "*":
-            #Check the number of asterisks so we don"t leave a dangling one
-            if response.count("*") % 2 != 0:
-                response = response[:-1]
-                response = response.rstrip()
+    response = response.strip()
     return response
 
 def weighted_selection(keyword_memories, weights, max_length):
