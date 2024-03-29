@@ -16,6 +16,21 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import torch
 import spacy
 
+def is_likely_code(text):
+    """
+    Simple heuristics to try to tell if the returned output is code, which needs different formatting
+    
+    Parameters:
+    - text: A string containing the text to test
+    
+    Returns:
+    - True if number of matches > threshold, else false
+    """
+    
+    code_indicators = ["function", "var ", "{", "}", "import ", "#include", "def ", "class ", "->", "```"]
+    threshold = 2  # Number of indicators to qualify as code
+    return sum(indicator in text for indicator in code_indicators) >= threshold
+
 @timed_execution
 def load_model(new_model, queue):
     """
@@ -90,7 +105,9 @@ def custom_template(llm):
     ps = ProgramSettings()
     prompt=ai.working_memory
     cprompt = ""
-    if ps.template =="BAI Opus":
+    if ps.template == "HF Automatic": #Use HF transformers build in apply_chat_template, doesn't always detect things properly
+      cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
+    elif ps.template =="BAI Opus":
         for entry in ai.working_memory:
             if entry["role"] == "user":
                 cprompt+=f"<|IM_START|>text names= {ps.username}\n"
@@ -138,6 +155,7 @@ def custom_template(llm):
                 cprompt+= ai.personality_definition["name"] + ": "
                 cprompt+=entry["content"] + "\n"
         cprompt+= "### Response: \n"
+    cprompt+="\u200b\u200b\u200b"
     log(f"Templated prompt: {cprompt}")
     response_start=len(cprompt)
     log(f"Response start: {response_start}")
@@ -193,7 +211,7 @@ def generate_model_response(llm):
             torch.cuda.empty_cache()
     gc.collect()
     feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return post_process(feedback, response_start)
+    return post_process(feedback)
 
 @timed_execution
 def update_working_memory(user_message):
@@ -311,7 +329,7 @@ def extract_keywords(sentence, personality_definition):
     log("Extracted keywords: " + str(keywords))
     return keywords
 
-def post_process(input_string, response_start):
+def post_process(input_string):
     """
     Post processes the model output to prepare it for the user
     
@@ -324,35 +342,43 @@ def post_process(input_string, response_start):
     """
     ps = ProgramSettings()
     punctuation_set = {"!", ".", "?", "*", ")"}
-    if ps.template == "BAI SynthIA" or ps.template_guess == "Synthia":
+    if ps.template == "BAI SynthIA":
         end_tag="\nUSER:"
-    elif ps.template == "BAI Zephyr" or ps.template_guess == "Zephyr":
+    elif ps.template == "BAI Zephyr":
         end_tag="</s>"
-    elif ps.template == "BAI Opus" or ps.template_guess == "Opus":
+    elif ps.template == "BAI Opus":
         end_tag="<|IM_END|>"
-    elif ps.template == "BAI Instruct" or ps.template_guess == "Instruct":
+    elif ps.template == "BAI Instruct":
         end_tag="[end of transmission]"
     else:
         end_tag="</s>"
+    response_start = input_string.rfind("\u200b\u200b\u200b") + 3
+    response = input_string[response_start:].lstrip("/n")
     
-    response = input_string[response_start:]
     tag_index=response.find(end_tag)
     if tag_index != -1:
         response=response[:tag_index]
     else:
-        if len(response) != 0 and response[-1] not in punctuation_set:
-            last_punctuation_index = next((i for i, char in enumerate(
-                reversed(response)) if char in punctuation_set), None)
-            if last_punctuation_index is not None:
-                result_string = response[:-last_punctuation_index].rstrip()
-                response = result_string
-            response = response.strip()
-        if response[-1] == "*":
-            #Check the number of asterisks so we don"t leave a dangling one
-            if response.count("*") % 2 != 0:
-                response = response[:-1]
-                response = response.rstrip()
+        code = is_likely_code(response)
+        log(f"Is likely code: {code}")
+        if not code:
+            if len(response) != 0 and response[-1] not in punctuation_set:
+                last_punctuation_index = next((i for i, char in enumerate(
+                    reversed(response)) if char in punctuation_set), None)
+                if last_punctuation_index is not None:
+                    result_string = response[:-last_punctuation_index].rstrip()
+                    response = result_string
+                response = response.strip()
+            if response[-1] == "*":
+                #Check the number of asterisks so we don"t leave a dangling one
+                if response.count("*") % 2 != 0:
+                    response = response[:-1]
+                    response = response.rstrip()
+        else:
+            # we need to find the last ``` and make sure truncation occurs after that
+            pass
     response = response.strip()
+    
     return response
 
 def weighted_selection(keyword_memories, weights, max_length):

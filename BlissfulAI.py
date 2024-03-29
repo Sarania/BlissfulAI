@@ -374,9 +374,9 @@ def select_folder():
     Returns:
     - a string containing the folder path
     """
-    folder = sg.popup_get_folder("Please select a folder:")
-    if folder is None or folder == "" or len(folder) < 1:  # No folder was selected
-        folder = None
+    folder = sg.popup_get_folder("Please select a folder:", no_window=True)
+    if folder is None or len(folder) < 1:  # No folder was selected
+        folder = ""
         log("No folder was selected!")
     else:
         log(f"Model selected: {folder}")
@@ -567,7 +567,7 @@ def create_settings_window():
     string_width = 36
     backend_options = ["cuda", "cpu", "auto"] if nvidia() is True else ["cpu", "auto"]
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
-    template_options = ["BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
+    template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
     [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username", enable_events=True)],
     [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="backend", readonly=True, enable_events=True)],
