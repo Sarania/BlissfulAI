@@ -52,9 +52,8 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._personality_status = "unloaded" #Current status of the personality, not saved
         self._username = "User" #Username, saved to file
         self._template = "BAI Opus" #Selected template, saved to file
-        self._template_guess = "" #Best guess at template when using automatic, not saved
         self._cuda_version = "None" #
-        self._VERSION = "0.9.5 RC1" #Program version
+        self._VERSION = "0.9.6 RC2" #Program version
 
     @property
     def backend(self):
@@ -189,14 +188,6 @@ class ProgramSettings(metaclass=SingletonMeta):
         if not isinstance(value, str) and value is not None:
             raise ValueError("template must be a string")
         self._template = value
-        
-    @property
-    def template_guess(self):
-        return self._template_guess
-    
-    @template_guess.setter
-    def template_guess(self, new_guess):
-        self._template_guess = new_guess
         
     @property
     def cuda_version(self):
