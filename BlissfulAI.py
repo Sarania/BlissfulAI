@@ -160,6 +160,28 @@ class LanguageModel():
         """
         self._streamer = value
 
+def handle_memory_failed():
+    """
+    Displays a notice to the user that memory check failed and asks what to do
+
+    Parameters:
+    - message: The notice to display
+
+    """
+    layout = [
+        [sg.Text("Detected errors in memory fingerprint. What would you like to do?")],
+        [sg.Column([[sg.Button("Fix"), sg.Button("Ignore")]], justification="center")]
+    ]
+    window = sg.Window("Memory Check Failed!", layout, icon="./resources/bai.ico", modal=True)
+    while True:
+        event, _ = window.read()
+        if event in (sg.WIN_CLOSED, "Ignore"):
+            window.close()
+            return False
+        elif event == "Fix":
+            window.close()
+            return True
+
 def open_url(url):
     """
     Simply opens a URL in the default browser
@@ -770,6 +792,8 @@ def load_personality(personality_path):
             memory = [{**item, "content": item["content"].replace("\n", "")} for item in memory] # clean the \n
         memory_failed=0
         log("Memory consistency checks...")
+        fix_it = None
+        ignored = False
         for i, entry in enumerate(memory):
             try:
                 assert "role" in entry
@@ -796,23 +820,29 @@ def load_personality(personality_path):
                     assert entry["identity"] == generate_hash(str(entry["content"]) + str(entry["date"]))
             except AssertionError:
                 log("Fingerprint mismatch for memory " + str(i))
-                if args.fpfix:
+                log("Expected: " + generate_hash(str(entry["content"]) + str(entry["date"])))
+                log("Actual: " + entry["identity"])
+                if fix_it is None:
+                    fix_it = handle_memory_failed()
+                if fix_it:
                     log("Updating...")
                     memory[i]["identity"] = generate_hash(str(entry["content"]) + str(entry["date"]))
                     log("Fingerprint: " + memory[i]["identity"])
                 else:
-                    log("Expected: " + generate_hash(str(entry["content"]) + str(entry["date"])))
-                    log("Actual: " + entry["identity"])
-                    print("Pass --fpfix to attempt to correct this!")
-                    memory_failed+=1
+                    log("Failed memory ignored!")
+                memory_failed+=1
             try:
                 assert "rating" in entry
             except AssertionError:
                 log(f"Memory {i} missing 'rating' field!")
                 memory_failed+=1
         log("Detected " + str(memory_failed) + " errors in memory!")
-        assert memory_failed==0
-        log("Memory checks passed.")
+        if fix_it is not None:
+            if not fix_it:
+                log("Warning: Memory fingerprints NOT fixed, memory is inconsistent.")
+            else:
+                log("Memory fingerprints updated!")
+        log("Memory checks complete.")
         ai.personality_definition=personality_definition
         ai.core_memory = memory
         ai.personality_path=personality_path
@@ -843,24 +873,11 @@ def main():
         os.remove("./logfile.txt")
 
     # Load personality configuration and initialize core memory.
-    if args.personality is not None:
+    if args.personality is not None and os.path.exists(args.personality):
         load_personality(args.personality)
-    elif ps.default_personality is not None:
+    elif ps.default_personality is not None and os.path.exists(ps.default_personality):
         load_personality(ps.default_personality)
-    if "top_p_enable" not in ai.personality_definition:
-        ai.personality_definition["top_p_enable"] = False
-    if "top_k_enable" not in ai.personality_definition:
-        ai.personality_definition["top_k_enable"] = False
-    if "typical_p" not in ai.personality_definition:
-        ai.personality_definition["typical_p"] = 1.0
-    if "typical_p_enable" not in ai.personality_definition:
-        ai.personality_definition["typical_p_enable"] = False
-    if "temperature_enable" not in ai.personality_definition:
-        ai.personality_definition["temperature_enable"] = False
-    if "length_penalty_enable" not in ai.personality_definition:
-        ai.personality_definition["length_penalty_enable"] = False
-    if "repetition_penalty_enable" not in ai.personality_definition:
-        ai.personality_definition["repetition_penalty_enable"] = False
+
     # Initialize chat window UI.
     window = create_chat_window()
 
@@ -885,11 +902,11 @@ def main():
     if sys.platform == "win32":
         win32api.SetConsoleCtrlHandler(shutdown_handler, True)
 
-    if args.model is not None:
+    if args.model is not None and os.path.exists(args.model):
         llm.model_path = args.model
         ps.model_status="loading"
         threading.Thread(target=load_model, args=(llm.model_path, model_queue), daemon=True).start()
-    elif ps.default_model is not None:
+    elif ps.default_model is not None and os.path.exists(ps.default_model):
         llm.model_path = ps.default_model
         ps.model_status="loading"
         threading.Thread(target=load_model, args=(llm.model_path, model_queue), daemon=True).start()
@@ -1018,7 +1035,6 @@ parser.add_argument("-m", "--model", type=str, default=None)
 parser.add_argument("-p", "--personality", type=str, default=None)
 parser.add_argument("--suppress", type=bool, default=True)
 parser.add_argument("-d", "--device", type=str, default="cuda")
-parser.add_argument("--fpfix", action="store_true")
 parser.add_argument("--stream", action="store_true")
 args = parser.parse_args()
 if __name__ == "__main__":
