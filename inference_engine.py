@@ -99,7 +99,7 @@ def load_model(new_model, queue):
                 if ps.backend == "cuda":
                     model = AutoModelForCausalLM.from_pretrained(new_model, attn_implementation="sdpa", torch_dtype=torch.float16, low_cpu_mem_usage=True).to("cuda")
                 elif ps.backend == "cpu":
-                    model = AutoModelForCausalLM.from_pretrained(new_model, attn_implementation="sdpa", torch_dtype=torch.float16, low_cpu_mem_usage=True).to("cpu")
+                    model = AutoModelForCausalLM.from_pretrained(new_model, attn_implementation="sdpa", torch_dtype=torch.float32, low_cpu_mem_usage=True).to("cpu")
                 elif ps.backend == "auto":
                     model = AutoModelForCausalLM.from_pretrained(new_model, attn_implementation="sdpa", torch_dtype=torch.float16, device_map="auto", low_cpu_mem_usage=True)
 
