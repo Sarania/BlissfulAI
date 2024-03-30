@@ -1,0 +1,51 @@
+[
+    {
+        "name": "Name",
+        "top_p": 1.0,
+        "top_k": 50,
+        "temperature": 1.0,
+        "response_length": 64,
+        "persistent": true,
+        "stm_size": 24,
+        "ltm_size": 24,
+        "repetition_penalty": 1.0,
+        "length_penalty": 1.0,
+        "num_beams": 1,
+        "num_keywords": 3,
+        "top_p_enable": false,
+        "top_k_enable": false,
+        "typical_p": 0.92,
+        "typical_p_enable": true,
+        "temperature_enable": false,
+        "length_penalty_enable": false,
+        "repetition_penalty_enable": false
+    },
+    {
+        "role": "user",
+        "content": "What is a gubbin?",
+        "identity": "dd139e6313d854b818ef676ce449323d04c0e620a79fc99c58ed0c577321b04e",
+        "rating": "",
+        "date": "2024-03-30 11:49:44.710731"
+    },
+    {
+        "role": "assistant",
+        "content": "A gubbin is a small, often unspecified or unidentified part of a machine or system. The term is used colloquially and is typically employed when referring to a mechanical component that is difficult to name or describe precisely.",
+        "identity": "9bc5f218f3112a07721dc53e2feb176eea32d7199f4ed5f47f7b9582412b6f81",
+        "rating": "",
+        "date": "2024-03-30 11:49:50.710552"
+    },
+    {
+        "role": "user",
+        "content": "like a widget?",
+        "identity": "00f1e561271c1598e387b90808b7ce5f3bcb8e6a5116df5cc9a4738e68b90393",
+        "rating": "",
+        "date": "2024-03-30 11:50:06.100598"
+    },
+    {
+        "role": "assistant",
+        "content": "Yes, in a way. The term \"widget\" is also used informally to refer to a small, often unspecified or unidentified part or piece of equipment, particularly in the context of technology or manufacturing.",
+        "identity": "241ba1883296f86bf866218abaf9aee9d401326bb8680e9382c01bf6812a7fe2",
+        "rating": "",
+        "date": "2024-03-30 11:50:11.947953"
+    }
+]

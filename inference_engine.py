@@ -14,6 +14,7 @@ from utils import timed_execution, log, generate_hash, nvidia
 from singletons import AI, ProgramSettings
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextStreamer
 import torch
+from torch.cuda.amp import autocast
 import spacy
 import json
 
@@ -79,6 +80,7 @@ def load_model(new_model, queue):
     - new_model: The new model to load, a path to a directory
     - queue: The queue which we will return the new model and tokenizer through
     """
+    torch.set_default_tensor_type('torch.cuda.FloatTensor' if nvidia() is True else 'torch.FloatTensor')
     ps = ProgramSettings()
     log(f"Loading model {new_model}...")
     if os.path.exists(new_model):
@@ -232,17 +234,18 @@ def generate_model_response(llm):
         log("Greedy!")
     log("Running primary model...")
     with torch.inference_mode():
-        outputs = llm.model.generate(prompt, max_new_tokens=ai.personality_definition["response_length"],
-                                 streamer=llm.streamer if ps.do_stream else None,
-                                 do_sample=any([ai.personality_definition["temperature_enable"], ai.personality_definition["top_k_enable"], ai.personality_definition["top_p_enable"], ai.personality_definition["typical_p_enable"], ai.personality_definition["repetition_penalty_enable"], ai.personality_definition["length_penalty_enable"]]),
-                                 temperature=ai.personality_definition["temperature"] if ai.personality_definition["temperature_enable"] else None,
-                                 num_beams=ai.personality_definition["num_beams"],
-                                 top_k=ai.personality_definition["top_k"] if ai.personality_definition["top_k_enable"] else None,
-                                 top_p=ai.personality_definition["top_p"] if ai.personality_definition["top_p_enable"] else None,
-                                 typical_p=ai.personality_definition["typical_p"] if ai.personality_definition["typical_p_enable"] else None,
-                                 length_penalty=ai.personality_definition["length_penalty"] if ai.personality_definition["length_penalty_enable"] else None,
-                                 repetition_penalty=ai.personality_definition["repetition_penalty"] if ai.personality_definition["repetition_penalty_enable"] else None,
-                                 pad_token_id=llm.tokenizer.eos_token_id)
+        with autocast():
+            outputs = llm.model.generate(prompt, max_new_tokens=ai.personality_definition["response_length"],
+                                     streamer=llm.streamer if ps.do_stream else None,
+                                     do_sample=any([ai.personality_definition["temperature_enable"], ai.personality_definition["top_k_enable"], ai.personality_definition["top_p_enable"], ai.personality_definition["typical_p_enable"], ai.personality_definition["repetition_penalty_enable"], ai.personality_definition["length_penalty_enable"]]),
+                                     temperature=ai.personality_definition["temperature"] if ai.personality_definition["temperature_enable"] else None,
+                                     num_beams=ai.personality_definition["num_beams"],
+                                     top_k=ai.personality_definition["top_k"] if ai.personality_definition["top_k_enable"] else None,
+                                     top_p=ai.personality_definition["top_p"] if ai.personality_definition["top_p_enable"] else None,
+                                     typical_p=ai.personality_definition["typical_p"] if ai.personality_definition["typical_p_enable"] else None,
+                                     length_penalty=ai.personality_definition["length_penalty"] if ai.personality_definition["length_penalty_enable"] else None,
+                                     repetition_penalty=ai.personality_definition["repetition_penalty"] if ai.personality_definition["repetition_penalty_enable"] else None,
+                                     pad_token_id=llm.tokenizer.eos_token_id)
     # Clean up the context after inference
     prompt = None
     del prompt
