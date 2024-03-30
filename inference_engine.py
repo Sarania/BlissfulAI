@@ -426,9 +426,6 @@ def post_process(input_string, llm):
         response = input_string[response_start:].lstrip("\n \u200b")
 
         tag_index=response.find(end_tag)
-        log(input_string)
-        log(end_tag)
-        log(tag_index)
         if tag_index != -1:
             response=response[:tag_index]
         else:
