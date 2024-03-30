@@ -523,28 +523,22 @@ def create_edit_window():
         [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
         [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
         [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-        [sg.Text("Help: Explanations of parameters will appear here.", size=(60, 2), key="explanation", text_color="green")],
+        [sg.Text("Help: Explanations of parameters will appear here.", size=(60, 3), key="explanation", text_color="green")],
         [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
         [sg.Column(messages_editor, vertical_alignment="top")],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
 
     window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon="./resources/bai.ico")
-    window['name'].Widget.bind('<Button-1>', lambda _, window=window, evname="name": update_help(window, evname))
-    window['top_p'].Widget.bind('<Button-1>', lambda _, window=window, evname="top_p": update_help(window, evname))
-    window['typical_p'].Widget.bind('<Button-1>', lambda _, window=window, evname="typical_p": update_help(window, evname))
-    window['top_k'].Widget.bind('<Button-1>', lambda _, window=window, evname="top_k": update_help(window, evname))
-    window['temperature'].Widget.bind('<Button-1>', lambda _, window=window, evname="temperature": update_help(window, evname))
-    window['length_penalty'].Widget.bind('<Button-1>', lambda _, window=window, evname="length_penalty": update_help(window, evname))
-    window['repetition_penalty'].Widget.bind('<Button-1>', lambda _, window=window, evname="repetition_penalty": update_help(window, evname))
-    window['response_length'].Widget.bind('<Button-1>', lambda _, window=window, evname="response_length": update_help(window, evname))
-    window['stm_size'].Widget.bind('<Button-1>', lambda _, window=window, evname="stm_size": update_help(window, evname))
-    window['ltm_size'].Widget.bind('<Button-1>', lambda _, window=window, evname="ltm_size": update_help(window, evname))
-    window['num_keywords'].Widget.bind('<Button-1>', lambda _, window=window, evname="num_keywords": update_help(window, evname))
-    window['num_beams'].Widget.bind('<Button-1>', lambda _, window=window, evname="num_beams": update_help(window, evname))
-    window['persistent'].Widget.bind('<Button-1>', lambda _, window=window, evname="persistent": update_help(window, evname))
-    window['messages_editor'].Widget.bind('<Button-1>', lambda _, window=window, evname="messages_editor": update_help(window, evname))
+    event_names = [
+        "name", "top_p", "typical_p", "top_k", "temperature", 
+        "length_penalty", "repetition_penalty", "response_length",
+        "stm_size", "ltm_size", "num_keywords", "num_beams", 
+        "persistent", "messages_editor"
+    ]
 
+    for evname in event_names:
+        window[evname].Widget.bind('<Button-1>', lambda event, window=window, evname=evname: update_help(window, evname))
     return window
 
 def create_settings_window():
@@ -559,9 +553,11 @@ def create_settings_window():
             "template": "(Model Template) - The template for formatting the model's input.",
             "default_model_path": "(Default Model) - The model to load on startup.",
             "default_personality_path": "(Default Personality) - The personality to load on startup.",
-            "stream": "(Stream output to STDOUT?) - Whether to stream the generated tokens to stdout as they are generated."
+            "stream": "(Stream output to STDOUT?) - Whether to stream the generated tokens to stdout as they are generated.",
+            "auto_template": "(TRY to auto-select best): tries to automatically select the best template based on the model. If it fails, falls back to user selection."
         }
         window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
+
     ps = ProgramSettings()
     label_width = 20
     string_width = 36
@@ -572,21 +568,22 @@ def create_settings_window():
     [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username", enable_events=True)],
     [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="backend", readonly=True, enable_events=True)],
     [sg.Text("Model Quantization:", size=(label_width,1)), sg.Combo(quant_options, default_value=ps.quant, key="quant", readonly=True, enable_events=True)],
-    [sg.Text("Model Template:", size=(label_width,1)), sg.Combo(template_options, default_value=ps.template, key="template", readonly=True, enable_events=True)],
+    [sg.Text("Model Template:", size=(label_width,1)), sg.Combo(template_options, default_value=ps.template, key="template", readonly=True, enable_events=True), sg.Checkbox("TRY to auto-select best", default=ps.auto_template, key="auto_template", enable_events=True)],
     [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, enable_events=True, key="default_model_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_model_path")],
     [sg.Text("Default Personality:", size=(label_width,1)), sg.Input(default_text=ps.default_personality , enable_events=True, key="default_personality_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_personality_path")],
     [sg.Text("Stream output to STDOUT?", size=(label_width,1)), sg.Checkbox("", default=ps.do_stream, key="stream", enable_events=True)],
-    [sg.Text("Help: Explanations of settings will appear here.", size=(60, 2), key="explanation", text_color="green")],
+    [sg.Text("Help: Explanations of settings will appear here.", size=(60, 3), key="explanation", text_color="green")],
     [sg.Button("Save"), sg.Button("Cancel")]
     ]
     window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.ico", finalize=True)
-    window['username'].Widget.bind('<Button-1>', lambda _, window=window, evname="username": update_help(window, evname))
-    window['backend'].Widget.bind('<Button-1>', lambda _, window=window, evname="backend": update_help(window, evname))
-    window['quant'].Widget.bind('<Button-1>', lambda _, window=window, evname="quant": update_help(window, evname))
-    window['template'].Widget.bind('<Button-1>', lambda _, window=window, evname="template": update_help(window, evname))
-    window['default_model_path'].Widget.bind('<Button-1>', lambda _, window=window, evname="default_model_path": update_help(window, evname))
-    window['default_personality_path'].Widget.bind('<Button-1>', lambda _, window=window, evname="default_personality_path": update_help(window, evname))
-    window['stream'].Widget.bind('<Button-1>', lambda _, window=window, evname="stream": update_help(window, evname))
+    event_names = [
+        "username", "backend", "quant", "template", "default_model_path",
+        "default_personality_path", "stream", "auto_template"
+    ]
+
+    for evname in event_names:
+        window[evname].Widget.bind('<Button-1>', lambda _, window=window, evname=evname: update_help(window, evname))
+
     return window
 
 def handle_settings_event():
@@ -610,6 +607,7 @@ def handle_settings_event():
             ps.do_stream = values["stream"]
             ps.username = values["username"]
             ps.template = values["template"]
+            ps.auto_template = values["auto_template"]
             log("Settings updated.")
             ps.save_to_file()
             settings_window.close()

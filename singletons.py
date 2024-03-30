@@ -52,8 +52,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._personality_status = "unloaded" #Current status of the personality, not saved
         self._username = "User" #Username, saved to file
         self._template = "BAI Opus" #Selected template, saved to file
-        self._cuda_version = "None" #Cuda version detecting, not save
-        self._template_guess = "" #Best guess template guess
+        self._auto_template = False #Whether to try to use BAI auto templating. Saved to settings.
         self._VERSION = "0.9.6 RC2" #Program version
 
     @property
@@ -189,24 +188,21 @@ class ProgramSettings(metaclass=SingletonMeta):
         if not isinstance(value, str) and value is not None:
             raise ValueError("template must be a string")
         self._template = value
-        
+     
     @property
-    def cuda_version(self):
-        """Returns the set cuda version"""
-        return self._cuda_version
+    def auto_template(self):
+        """Gets the current auto_template setting."""
+        return self._auto_template
 
-    @cuda_version.setter
-    def cuda_version(self, new_version):
-        """Sets a new version of CUDA"""
-        self._cuda_version = new_version
-
-    @property
-    def template_guess(self):
-        return self._template_guess
-
-    @template_guess.setter
-    def template_guess(self, new_guess):
-        self._template_guess = new_guess
+    @auto_template.setter
+    def auto_template(self, value):
+        """Sets the auto_template setting, ensuring it is a string.
+         Parameters:
+            value: The new template setting.
+        """
+        if not isinstance(value, bool):
+            raise ValueError("auto_template must be a bool")
+        self._auto_template = value
 
     @property
     def VERSION(self):
@@ -225,6 +221,7 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_do_stream": self._do_stream,
             "_username": self._username,
             "_template": self._template,
+            "_auto_template": self._auto_template
         }
         # Write the dictionary to a file as JSON
         with open("./settings.json", "w", encoding="utf-8") as file:
@@ -251,7 +248,8 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_default_personality": "",
             "_do_stream": False,
             "_username": "User",
-            "_template": "BAI Opus"
+            "_template": "BAI Opus",
+            "_auto_template": False
             # Add or update other default settings here as needed.
         }
 
@@ -275,6 +273,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         instance.do_stream = data.get("_do_stream", default_settings["_do_stream"])
         instance.username = data.get("_username", default_settings["_username"])
         instance.template = data.get("_template", default_settings["_template"])
+        instance.auto_template = data.get("_auto_template", default_settings["_auto_template"])
         return instance
 
 class AI(metaclass=SingletonMeta):

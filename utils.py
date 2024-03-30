@@ -98,8 +98,8 @@ def log(input_string):
     with open("./logfile.txt", "a", encoding="utf-8") as logfile:
         current_time = datetime.now()
         time_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
-        logfile.write(time_str + ": " + str(input_string) + "\n")
-        print(time_str + ": " + str(input_string) + "\n")
+        logfile.write(f"{time_str}: {input_string}\n")
+        print(f"{time_str}: {input_string}\n")
 
 def timed_execution(function):
     """

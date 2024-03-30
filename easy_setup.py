@@ -42,25 +42,24 @@ def handle_setup_event():
         event, values = settings_window.read(timeout=50)
         if event in (sg.WIN_CLOSED, "Cancel"):
             settings_window.close()
-            sys.exit(0)
+            sys.exit(2)
         if event == "Save":
             ps.username = values["username"]
-            ps.cuda_version = values["cuda"]
             ps.save_to_file()
             settings_window.close()
-            break
+            return values["cuda"]
 
 def main():
     """Main function for downloading models"""
     ps = ProgramSettings()
-    handle_setup_event()
+    cuda_version=handle_setup_event()
     cuda_to_torch = {
         "12.1": "pip install torch --index-url https://download.pytorch.org/whl/cu121",
         "11.8": "pip install torch --index-url https://download.pytorch.org/whl/cu118"
     }
 
-    if ps.cuda_version in cuda_to_torch:
-        command = cuda_to_torch[ps.cuda_version]
+    if cuda_version in cuda_to_torch:
+        command = cuda_to_torch[cuda_version]
     else:
         command = "pip install torch"
     print("Installing selected PyTorch version...")

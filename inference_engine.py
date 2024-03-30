@@ -15,7 +15,45 @@ from singletons import AI, ProgramSettings
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextStreamer
 import torch
 import spacy
+import json
 
+def auto_detect_template(llm):
+    """
+    Attempt to auto detect the best template to use to save the user from shenanigans
+    """
+    ps = ProgramSettings()
+    if not hasattr(auto_detect_template, "template_checked") or auto_detect_template.checked_model != llm.model_path:
+        log("Attempting to detect templating style...")
+        auto_detect_template.template_checked = True
+        auto_detect_template.checked_model = llm.model_path
+        config_path = os.path.join(llm.model_path, "tokenizer_config.json" )
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="UTF-8") as tokenizer_config:
+                data = json.load(tokenizer_config)
+                if "chat_template" in data:
+                    chat_template = data["chat_template"]
+                else:
+                    log("No template specification in tokenizer_config.json! Unable to auto detect! Will fall back to setting...")
+                    auto_detect_template.template=ps.template
+                    return auto_detect_template.template
+            if "<|im_start|>" in chat_template:
+                log("Detected template as 'Opus'!")
+                auto_detect_template.template=("BAI Opus")
+            elif "<|assistant|>" in chat_template:
+                log("Detected template as 'Zephyr'!")
+                auto_detect_template.template=("BAI Zephyr")
+            elif "[INST]" in chat_template:
+                log("Detected template as 'Instruct'!")
+                auto_detect_template.template=("BAI Instruct")
+            else:
+                log("Unable to identify template! Will fall back to setting...")
+                auto_detect_template.template=ps.template
+        else:
+            log("No tokenizer_config.json found in model! Will fall back to setting...")
+            auto_detect_template.template=ps.template
+            return auto_detect_template.template
+    return auto_detect_template.template
+    
 def is_likely_code(text):
     """
     Simple heuristics to try to tell if the returned output is code, which needs different formatting
@@ -26,7 +64,7 @@ def is_likely_code(text):
     Returns:
     - True if number of matches > threshold, else false
     """
-    
+
     code_indicators = ["function", "var ", "{", "}", "import ", "#include", "def ", "class ", "->", "```"]
     threshold = 2  # Number of indicators to qualify as code
     return sum(indicator in text for indicator in code_indicators) >= threshold
@@ -42,7 +80,7 @@ def load_model(new_model, queue):
     - queue: The queue which we will return the new model and tokenizer through
     """
     ps = ProgramSettings()
-    log("Loading model " + new_model + "...")
+    log(f"Loading model {new_model}...")
     if os.path.exists(new_model):
         with torch.inference_mode():
             if ps.quant=="BNB 4bit":
@@ -105,29 +143,33 @@ def custom_template(llm):
     ps = ProgramSettings()
     prompt=ai.working_memory
     cprompt = ""
-    if ps.template == "HF Automatic": #Use HF transformers build in apply_chat_template, doesn't always detect things properly
-      cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
-    elif ps.template =="BAI Opus":
+    if ps.auto_template is True:
+        template = auto_detect_template(llm)
+    else:
+        template = ps.template
+    if template == "HF Automatic": #Use HF transformers build in apply_chat_template, doesn't always detect things properly
+        cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
+    elif template =="BAI Opus":
         for entry in ai.working_memory:
             if entry["role"] == "user":
-                cprompt+=f"<|IM_START|>text names= {ps.username}\n"
+                cprompt+=f"<|im_start|>text names= {ps.username}\n"
                 cprompt+=entry["content"]
-                cprompt+="<|IM_END|>\n"
+                cprompt+="<|im_end|>\n"
             elif entry["role"] =="assistant":
-                cprompt+=f"<|IM_START|>text names= {ai.personality_definition['name']}\n"
+                cprompt+=f"<|im_start|>text names= {ai.personality_definition['name']}\n"
                 cprompt+=entry["content"]
-                cprompt+="<|IM_END|>\n"
+                cprompt+="<|im_end|>\n"
             elif entry["role"] == "system":
-                cprompt+="<|IM_START|>system\n"
+                cprompt+="<|im_start>|>system\n"
                 cprompt+=entry["content"]
-                cprompt+="<|IM_END|>\n"
-        cprompt+=f"<|IM_START|>text names= {ai.personality_definition['name']}\n"
-    elif ps.template == "BAI SynthIA":
+                cprompt+="<|im_end|>\n"
+        cprompt+=f"<|im_start|>text names= {ai.personality_definition['name']}\n"
+    elif template == "BAI SynthIA":
         for entry in prompt:
             cprompt += entry["role"].upper() + ":\n"
             cprompt += entry["content"] + "\n"
         cprompt += "ASSISTANT:\n"
-    elif ps.template == "BAI Instruct":
+    elif template == "BAI Instruct":
         for entry in ai.system_memory:
             cprompt+="[INST] "
             cprompt+=entry["content"]
@@ -137,17 +179,17 @@ def custom_template(llm):
                 cprompt+="[INST] " + entry["content"] + "[/INST]"
             if entry["role"] == "assistant":
                 cprompt+=entry["content"] + "\n"
-    elif ps.template =="BAI Zephyr":
+    elif template =="BAI Zephyr":
         for entry in prompt:
             cprompt += "<|" + entry["role"] + "|>\n"
             cprompt += entry["content"] + "\n"
         cprompt += "<|assistant|>"
-    elif ps.template == "BAI Alpaca":
+    elif template == "BAI Alpaca":
         cprompt += "### Instruction: \n"
         for entry in ai.system_memory:
             cprompt+= entry["content"] + "\n"
         cprompt+= "### Input: \n"
-        for entry in ai.core_memory:
+        for entry in ai.working_memory:
             if entry["role"] == "user" and entry["content"] != "":
                 cprompt+= f"{ps.username}: "
                 cprompt+=entry["content"] + "\n"
@@ -155,11 +197,9 @@ def custom_template(llm):
                 cprompt+= ai.personality_definition["name"] + ": "
                 cprompt+=entry["content"] + "\n"
         cprompt+= "### Response: \n"
-    cprompt+="\u200b\u200b\u200b"
+    cprompt+="\u200b" #Mark the response with zero width space, shouldn't confuse the model nor be produced by the model
     log(f"Templated prompt: {cprompt}")
-    response_start=len(cprompt)
-    log(f"Response start: {response_start}")
-    return cprompt, response_start
+    return cprompt
 
 def generate_model_response(llm):
     """
@@ -175,7 +215,7 @@ def generate_model_response(llm):
         if ps.backend in ["auto", "cuda"]:
             torch.cuda.empty_cache()
     gc.collect()
-    cprompt, response_start=custom_template(llm)
+    cprompt = custom_template(llm)
     log("Tokenizing...")
     if ps.backend in ("cuda", "auto"):
         log("Prompt to cuda...")
@@ -210,8 +250,8 @@ def generate_model_response(llm):
         if ps.backend in ["auto", "cuda"]:
             torch.cuda.empty_cache()
     gc.collect()
-    feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return post_process(feedback)
+    feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=False)
+    return post_process(feedback, llm)
 
 @timed_execution
 def update_working_memory(user_message):
@@ -329,12 +369,13 @@ def extract_keywords(sentence, personality_definition):
     log("Extracted keywords: " + str(keywords))
     return keywords
 
-def post_process(input_string):
+def post_process(input_string, llm):
     """
     Post processes the model output to prepare it for the user
     
     Parameters:
     - input_string:The string to process
+    - llm: The language model for sniffing out the template
 
     Returns:
     - response: The processed string.
@@ -343,42 +384,51 @@ def post_process(input_string):
     if len(input_string) > 0:
         ps = ProgramSettings()
         punctuation_set = {"!", ".", "?", "*", ")"}
-        if ps.template == "HF Automatic":
-            if input_string.find("<|IM_END|>") != -1:
-                ps.template_guess = "Opus"
+        if ps.auto_template is True:
+            template = auto_detect_template(llm)
+        else:
+            template = ps.template
+        template_guess = None
+        if template == "HF Automatic":
+            if input_string.find("<|im_end|>") != -1:
+                template_guess = "Opus"
             elif input_string.find("<|assistant|>") != -1:
-                ps.template_guess = "Zephyr"
+                template_guess = "Zephyr"
             elif input_string.find("[INST]") != -1:
-                ps.template_guess = "Instruct"
+                template_guess = "Instruct"
             elif input_string.find("\nUSER:") != -1:
-                ps.template_guess = "Synthia"
-            log(f"Best guess template: {ps.template_guess}")
-        if ps.template == "BAI SynthIA" or ps.template_guess == "Synthia":
+                template_guess = "Synthia"
+         
+            log(f"Best guess template: {template_guess}")
+        if template == "BAI SynthIA" or template_guess == "Synthia":
             end_tag="\nUSER:"
-        elif ps.template == "BAI Zephyr" or ps.template_guess == "Zephyr":
-            end_tag="</s>"
-        elif ps.template == "BAI Opus" or ps.template_guess == "Opus":
-            end_tag="<|IM_END|>"
-        elif ps.template == "BAI Instruct" or ps.template_guess == "Instruct":
+        elif template == "BAI Zephyr" or template_guess == "Zephyr":
+            end_tag="<|user|>"
+        elif template == "BAI Opus" or template_guess == "Opus":
+            end_tag="<|im_end|>"
+        elif template == "BAI Instruct" or template_guess == "Instruct":
             end_tag="[end of transmission]"
         else:
             end_tag="</s>"
-        response_start = input_string.rfind("\u200b\u200b\u200b") + 3
-        
+        response_start = input_string.rfind("\u200b") + 1
+
         if response_start != -1:
             response = input_string[response_start:].lstrip("\n \u200b")
         else:
             response=input_string
-            
-        if ps.template == "BAI Zephyr" or ps.template_guess =="Zephyr":
+
+        if template == "BAI Zephyr" or template_guess =="Zephyr":
             if response.startswith("<|assistant|>"):
                 response = response[13:]
-        elif ps.template == "BAI Opus" or ps.template_guess =="Opus":
-            if response.startswith("<|IM_START|>"):
+        elif template == "BAI Opus" or template_guess =="Opus":
+            if response.startswith("<|im_start|>"):
                 response = response[12:]
         response = input_string[response_start:].lstrip("\n \u200b")
-        
+
         tag_index=response.find(end_tag)
+        log(input_string)
+        log(end_tag)
+        log(tag_index)
         if tag_index != -1:
             response=response[:tag_index]
         else:
