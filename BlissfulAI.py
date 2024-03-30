@@ -41,6 +41,7 @@ import torch
 if sys.platform == "win32":
     import win32api
     import win32con
+import signal
 
 
 class LanguageModel():
@@ -880,27 +881,37 @@ def main():
 
     # Initialize chat window UI.
     window = create_chat_window()
-
-    def shutdown_handler(event):
-        if event in (win32con.CTRL_C_EVENT, win32con.CTRL_BREAK_EVENT, win32con.CTRL_CLOSE_EVENT, win32con.CTRL_LOGOFF_EVENT, win32con.CTRL_SHUTDOWN_EVENT):
-            log("OS level exit request accepted.")
-            ps=ProgramSettings()
-            if ps.model_status=="inferencing":
-                log("Removing last user_message to keep memory consistent.")
-                ai.core_memory.pop()
-            log("Final save of personality...")
-            update_hard_memory()
-            if window:
-                window.close()
-            os._exit(0)
-        return False  # Other signals are not handled
-
+    
     # Display the conversation history
     update_conversation_history(window)
+    
 
-    #Set this up to try to catch shutdown/restart etc
+    def shutdown_handler(signum=None, frame=None):
+        log("OS level exit request accepted.")
+        ps = ProgramSettings()
+        if ps.model_status == "inferencing":
+            log("Removing last user_message to keep memory consistent.")
+            ai.core_memory.pop()
+        log("Final save of personality...")
+        update_hard_memory()
+        if window:
+            window.close()
+        os._exit(0)
+
+    # For Windows
     if sys.platform == "win32":
-        win32api.SetConsoleCtrlHandler(shutdown_handler, True)
+        def windows_shutdown_handler(event):
+            if event in (win32con.CTRL_C_EVENT, win32con.CTRL_BREAK_EVENT, win32con.CTRL_CLOSE_EVENT, win32con.CTRL_LOGOFF_EVENT, win32con.CTRL_SHUTDOWN_EVENT):
+                shutdown_handler()
+                return True  # Indicate that the handler handled the event
+            return False  # Other signals are not handled
+        win32api.SetConsoleCtrlHandler(windows_shutdown_handler, True)
+    
+    # For Linux and others
+    else:
+        signal.signal(signal.SIGINT, shutdown_handler)
+        signal.signal(signal.SIGTERM, shutdown_handler)
+
 
     if args.model is not None and os.path.exists(args.model):
         llm.model_path = args.model
