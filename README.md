@@ -21,8 +21,8 @@ Welcome to **BlissfulAI**, a work in progress chatbot/story writing front end fo
 
 
 ## Prerequisites:
-- Python3 on Windows, probably Linux as well(I tried, haven't tested yet though!)
-- Necessary CUDA Toolkit to go with your desired CUDA version (11.8 or 12.1)
+- Python3 on Windows/Linux
+- Latest GPU drivers
 
 ## Beginning notes:
 
@@ -58,7 +58,7 @@ When you first run the program, make sure to check out the Settings dialog and s
 
 ## Templates:
 
-Different LLMs expect their inputs to be formatted in different ways. Templates are the somewhat messy solution to this. The chat history is stored as a list of dictionaries. This list is processed in various ways to produce the model's input. Some models like <|assistant|> and <|user|> tags. Some like <|IM_START|> and <|IM_END|>. The list goes on. Models are somewhat flexible in which template they will work with but they tend to produce their best results when matched with the template they were trained with. If you know the model's template style, you can set it directly. For instance for Zephyr 7B β you can set the template to "BAI Zephyr" which will use the BlissfulAI implementation of the Zephyr style template. The "HF Automatic" setting is different. It uses the apply_chat_template() method from HF transformers to attempt to autodetect and use the best template. It sometimes works great, it sometimes doesn't - for instance OpenZephyrChat 7B uses the Zephyr template style, but "HF Automatic" won't detect it properly. If you are getting broken results or complaints about the formatting, try a different template.
+Different LLMs expect their inputs to be formatted in different ways. Templates are the somewhat messy solution to this. The chat history is stored as a list of dictionaries. This list is processed in various ways to produce the model's input. Some models like <|assistant|> and <|user|> tags. Some like <|IM_START|> and <|IM_END|>. The list goes on. Models are somewhat flexible in which template they will work with but they tend to produce their best results when matched with the template they were trained with. If you know the model's template style, you can set it directly. For instance for Zephyr 7B β you can set the template to "BAI Zephyr" which will use the BlissfulAI implementation of the Zephyr style template. The "HF Automatic" setting is different. It uses the apply_chat_template() method from HF transformers to attempt to autodetect and use the best template. It sometimes works great, it sometimes doesn't - for instance OpenZephyrChat 7B uses the Zephyr template style, but "HF Automatic" won't detect it properly. If you are getting broken results or complaints about the formatting, try a different template. Lastly, the "TRY to auto-select best" option does just that - it looks at the model's info directly and tries to discern the template to use. If it fails, it falls back to the user setting.
 
 ## Tips:
 - You can middle click on any of the responses in the main chat window in order to up or downvote them, which affects their weighting in memory!
