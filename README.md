@@ -16,6 +16,7 @@ Welcome to **BlissfulAI**, a work in progress chatbot/story writing front end fo
 - Storywriting mode allows you to specify an "author personality", plot outline, character descriptions, writing style, summary of previous events and more!
 - Write the fanfic of your dreams! Rewrite the ending to {insert copyrighted work here} - but don't distribute it! Write an epic three part series about your dog! Your imagination is the limit.
 - Fully customizable, adaptable to different hardware configurations. Low VRAM? Limp by with a quantized 3 billion parameter model. Max VRAM? Run giant models that the rest of us can only dream about!
+- Live help system and solid default settings so you can jump right in!
 - Voices, personality traits, character avatars and more are planned for the future!
 
 
