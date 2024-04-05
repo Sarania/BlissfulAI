@@ -16,6 +16,7 @@ import psutil
 import pynvml
 import torch
 
+
 def get_os_name_and_version():
     """
     Returns the name and version of the operating system
@@ -26,6 +27,7 @@ def get_os_name_and_version():
         return os_name, os_version
 
     return os_name, "Version information not available"
+
 
 def get_cpu_name():
     """
@@ -44,6 +46,7 @@ def get_cpu_name():
             if "model name" in line:
                 return re.sub(".*model name.*:", "", line, 1).strip()
     return "CPU name not found"
+
 
 def get_gpu_info():
     """
@@ -74,10 +77,10 @@ def get_gpu_info():
 def generate_hash(content):
     """
     Function to generate a sha256 hash of the content to make memories have a unique identifier
-    
+
     Parameters:
     - content: String, the content to hash.
-    
+
     Returns:
     - the hash
     """
@@ -86,6 +89,7 @@ def generate_hash(content):
     hash_obj.update(content.encode("utf-8"))
     # Return the hexadecimal representation of the digest
     return hash_obj.hexdigest()
+
 
 def log(input_string):
     """
@@ -101,10 +105,11 @@ def log(input_string):
         logfile.write(f"{time_str}: {input_string}\n")
         print(f"{time_str}: {input_string}\n")
 
+
 def timed_execution(function):
     """
     Decorator function that times the execution of a given function
-    
+
     Parameters:
     - function: The function to time
     """
@@ -122,6 +127,7 @@ def timed_execution(function):
         return result
     return wrapper
 
+
 def is_number(s):
     """
     Simple function to check for numberness
@@ -132,6 +138,7 @@ def is_number(s):
         return False
 
     return True
+
 
 def nvidia():
     """
@@ -147,10 +154,11 @@ def nvidia():
 
     return nvidia.available
 
+
 def update_system_status(window, args_model):
     """
     Updates the UI with the current system status, including memory and CPU/GPU usage.
-    
+
     Parameters:
     - window: The PySimpleGUI window object
     - args_model: The model name
@@ -176,8 +184,8 @@ def get_ram_usage():
     ram = psutil.virtual_memory()
     used_ram = ram.used / (1024 ** 3)  # Convert to GB
     available_ram = ram.total / (1024 ** 3)
-    used_ram=round(used_ram)
-    available_ram=round(available_ram)
+    used_ram = round(used_ram)
+    available_ram = round(available_ram)
     return used_ram, available_ram
 
 

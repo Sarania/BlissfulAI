@@ -9,17 +9,20 @@ import os
 import json
 from datetime import datetime
 
+
 class SingletonMeta(type):
     """
     The SingletonMeta class is useful for creating objects that persist as a single instance across the whole program. Basically a global class.
     """
     _instances = {}
+
     def __call__(cls, *Parameters, **kwParameters):
         if cls not in cls._instances:
             cls._instances[cls] = super(SingletonMeta, cls).__call__(*Parameters, **kwParameters)
         return cls._instances[cls]
 
-def log(input_string): #this is duplicated here to avoid dependencies during initial setup
+
+def log(input_string):  # this is duplicated here to avoid dependencies during initial setup
     """
     Logs the string to the logfile
 
@@ -33,6 +36,25 @@ def log(input_string): #this is duplicated here to avoid dependencies during ini
         logfile.write(time_str + ": " + str(input_string) + "\n")
         print(time_str + ": " + str(input_string) + "\n")
 
+
+def AI():
+    """
+    Returns the current ai depending on mode
+
+    Parameters:
+    - None
+
+    Returns:
+    Either the chatter or the writer, depending on mode
+    """
+    ps = ProgramSettings()
+    if ps.mode == "chat":
+        return Chatter()
+    if ps.mode == "story":
+        return Writer()
+    return None
+
+
 class ProgramSettings(metaclass=SingletonMeta):
     """
     A class to hold the program's settings, ensuring that only one instance of the settings exists
@@ -43,17 +65,19 @@ class ProgramSettings(metaclass=SingletonMeta):
         """
         Initializes the ProgramSettings with default values.
         """
-        self._backend = "auto" #The backend to use, saved to file
-        self._quant = "None" #The quantization to use, saved to file
-        self._default_model = "" #The model to load on startup, saved to file
-        self._default_personality = "" #The personality to load on startup, saved to file
-        self._do_stream = False #Whether or not to stream the generated text to stdout, saved to file
-        self._model_status = "unloaded" #Current status of the model, not saved
-        self._personality_status = "unloaded" #Current status of the personality, not saved
-        self._username = "User" #Username, saved to file
-        self._template = "BAI Opus" #Selected template, saved to file
-        self._auto_template = False #Whether to try to use BAI auto templating. Saved to settings.
-        self._VERSION = "0.9.6 RC2" #Program version
+        self._backend = "auto"  # The backend to use, saved to file
+        self._quant = "None"  # The quantization to use, saved to file
+        self._mode = "chat"  # The current mode of the program, "chat" or "story"
+        self._default_model = ""  # The model to load on startup, saved to file
+        self._default_personality = ""  # The personality to load on startup, saved to file
+        self._do_stream = False  # Whether or not to stream the generated text to stdout, saved to file
+        self._model_status = "unloaded"  # Current status of the model, not saved
+        self._personality_status = "unloaded"  # Current status of the personality, not saved
+        self._username = "User"  # Username, saved to file
+        self._template = "BAI Opus"  # Selected template, saved to file
+        self._special = ""  # Special command, not saved
+        self._auto_template = False  # Whether to try to use BAI auto templating. Saved to settings.
+        self._VERSION = "1.0.0"  # Program version
 
     @property
     def backend(self):
@@ -82,6 +106,17 @@ class ProgramSettings(metaclass=SingletonMeta):
             value: The new quantization setting value.
         """
         self._quant = value
+
+    @property
+    def mode(self):
+        """Gets the current mode"""
+        return self._mode
+
+    @mode.setter
+    def mode(self, new_mode):
+        if new_mode not in ["chat", "story"]:
+            raise ValueError("mode must be either 'chat' or 'story'")
+        self._mode = new_mode
 
     @property
     def default_model(self):
@@ -188,7 +223,17 @@ class ProgramSettings(metaclass=SingletonMeta):
         if not isinstance(value, str) and value is not None:
             raise ValueError("template must be a string")
         self._template = value
-     
+
+    @property
+    def special(self):
+        """Gets the current special command."""
+        return self._special
+
+    @special.setter
+    def special(self, value):
+        """Sets the special command, it's used to pass special messages to the main loop"""
+        self._special = value
+
     @property
     def auto_template(self):
         """Gets the current auto_template setting."""
@@ -276,9 +321,10 @@ class ProgramSettings(metaclass=SingletonMeta):
         instance.auto_template = data.get("_auto_template", default_settings["_auto_template"])
         return instance
 
-class AI(metaclass=SingletonMeta):
+
+class Chatter(metaclass=SingletonMeta):
     """
-    A singleton class designed to encapsulate all data and configurations related to the currently loaded personality. 
+    A singleton class designed to encapsulate all data and configurations related to the currently loaded personality.
     It holds various memory models and settings that define the AI's personality and operational parameters.
     """
 
@@ -299,10 +345,10 @@ class AI(metaclass=SingletonMeta):
     def personality_definition(self, value):
         """
         Sets the AI's personality definition. Validates that the input is a dictionary representing the AI's personality settings.
-        
+
         Args:
             value (dict): A dictionary containing the AI's personality settings.
-            
+
         Raises:
             ValueError: If 'value' is not a dictionary.
         """
@@ -321,10 +367,9 @@ class AI(metaclass=SingletonMeta):
     def core_memory(self, value):
         """
         Sets the AI's core memory. Validates that the input is a list.
-        
+
         Args:
             value (list): A list representing the AI's core memory items.
-            
         Raises:
             ValueError: If 'value' is not a list.
         """
@@ -343,10 +388,10 @@ class AI(metaclass=SingletonMeta):
     def working_memory(self, value):
         """
         Sets the AI's working memory. Validates that the input is a list.
-        
+
         Args:
             value (list): A list representing the AI's working memory items.
-            
+
         Raises:
             ValueError: If 'value' is not a list.
         """
@@ -365,38 +410,16 @@ class AI(metaclass=SingletonMeta):
     def system_memory(self, value):
         """
         Sets the AI's system memory. Validates that the input is a list.
-        
+
         Args:
             value (list): A list representing the AI's system memory items.
-            
+
         Raises:
             ValueError: If 'value' is not a list.
         """
         if not isinstance(value, list):
             raise ValueError("system_memory must be a list")
         self._system_memory = value
-
-    @property
-    def num_sys_msg(self):
-        """
-        int: The number of system messages that have been processed by the AI. It must be a non-negative integer.
-        """
-        return self._num_sys_msg
-
-    @num_sys_msg.setter
-    def num_sys_msg(self, value):
-        """
-        Sets the number of system messages processed by the AI. Validates that the input is a non-negative integer.
-        
-        Args:
-            value (int): The number of system messages to set.
-            
-        Raises:
-            ValueError: If 'value' is not a non-negative integer.
-        """
-        if not isinstance(value, int) or value < 0:
-            raise ValueError("num_sys_msg must be a non-negative integer")
-        self._num_sys_msg = value
 
     @property
     def personality_path(self):
@@ -409,7 +432,7 @@ class AI(metaclass=SingletonMeta):
     def personality_path(self, new_path):
         """
         Sets the file path to the AI's personality definition.
-        
+
         Args:
             new_path (str): The file path to set for the AI's personality definition.
         """
@@ -423,6 +446,139 @@ class AI(metaclass=SingletonMeta):
         self.core_memory = []
         self.working_memory = []
         self.system_memory = []
-        self.num_sys_msg = 0
         self.personality_path = ""
-        
+
+
+class Writer(metaclass=SingletonMeta):
+    """
+    A singleton class designed to encapsulate all data and configurations related to the currently loaded personality for writing mode
+    """
+
+    def __init__(self):
+        """
+        Initializes the AI instance by setting up its default state, including resetting all forms of memory and settings.
+        """
+        self.reset()
+
+    @property
+    def personality_definition(self):
+        """
+        dict: Represents the set of parameters that define the AI's personality. Includes settings for response generation such as 'top_p', 'temperature', etc.
+        """
+        return self._personality_definition
+
+    @personality_definition.setter
+    def personality_definition(self, value):
+        """
+        Sets the AI's personality definition. Validates that the input is a dictionary representing the AI's personality settings.
+
+        Args:
+            value (dict): A dictionary containing the AI's personality settings.
+
+        Raises:
+            ValueError: If 'value' is not a dictionary.
+        """
+        if not isinstance(value, dict):
+            raise ValueError("personality_definition must be a dictionary")
+        self._personality_definition = value
+
+    @property
+    def system(self):
+        """Returns the system prompt for writing mode"""
+        return self._system
+
+    @system.setter
+    def system(self, new_prompt):
+        """Sets the system prompt for writing mode"""
+        self._system = new_prompt
+
+    @property
+    def characters(self):
+        """Returns the characters prompt for writing mode"""
+        return self._characters
+
+    @characters.setter
+    def characters(self, new_prompt):
+        """Sets the characters prompt for writing mode"""
+        self._characters = new_prompt
+
+    @property
+    def plot(self):
+        """Returns the plot prompt for writing mode"""
+        return self._plot
+
+    @plot.setter
+    def plot(self, new_prompt):
+        """Sets the plot prompt for writing mode"""
+        self._plot = new_prompt
+
+    @property
+    def style(self):
+        """Returns the style prompt for writing mode"""
+        return self._style
+
+    @style.setter
+    def style(self, new_prompt):
+        """Sets the style prompt for writing mode"""
+        self._style = new_prompt
+
+    @property
+    def summary(self):
+        """Returns the summary prompt for writing mode"""
+        return self._summary
+
+    @summary.setter
+    def summary(self, new_prompt):
+        """Sets the summary prompt for writing mode"""
+        self._summary = new_prompt
+
+    @property
+    def starter(self):
+        """Returns the starter prompt for writing mode"""
+        return self._starter
+
+    @starter.setter
+    def starter(self, new_prompt):
+        """Sets the starter prompt for writing mode"""
+        self._starter = new_prompt
+
+    @property
+    def length(self):
+        """Returns the length for writing mode"""
+        return self._length
+
+    @length.setter
+    def length(self, new_length):
+        """Sets the length for writing mode"""
+        self._length = new_length
+
+    @property
+    def personality_path(self):
+        """
+        str: The file path to the AI's personality definition file.
+        """
+        return self._personality_path
+
+    @personality_path.setter
+    def personality_path(self, new_path):
+        """
+        Sets the file path to the AI's personality definition.
+
+        Args:
+            new_path (str): The file path to set for the AI's personality definition.
+        """
+        self._personality_path = new_path
+
+    def reset(self):
+        """
+        Resets the AI's state to default, clearing all memories and settings except for the singleton nature of the instance.
+        """
+        self.personality_definition = {"name": "Name", "top_p": 1.0, "top_k": 50, "temperature": 1.0, "response_length": 64, "persistent": True, "stm_size": 24, "ltm_size": 24, "repetition_penalty": 1.0, "length_penalty": 1.0, "num_beams": 1, "num_keywords": 3, "top_p_enable": False, "top_k_enable": False, "typical_p": 0.92, "typical_p_enable": True, "temperature_enable": False, "length_penalty_enable": False, "repetition_penalty_enable": False}
+        self.system = ""
+        self.characters = ""
+        self.plot = ""
+        self.summary = ""
+        self.style = ""
+        self.length = 0
+        self.starter = ""
+        self.personality_path = ""

@@ -3,7 +3,7 @@
 Quick script for downloading models from Huggingface for use with BlissfulAI
 Created on Tue Mar 26 23:01:30 2024
 
-@author: 10% Blyss Sarania, 90% ChatGPT XD
+@author: 20% Blyss Sarania, 80% ChatGPT XD
 """
 
 import os
@@ -22,13 +22,14 @@ warnings.filterwarnings("ignore")
 # Set logging level to ERROR to suppress non-critical logs
 logging.basicConfig(level=logging.ERROR)
 
+
 def download_model_ui():
     """Simple UI for downloading models from HF"""
     sg.theme("Purple")
     ccp_right_click_menu = ["", ["Copy", "Cut", "Paste"]]
     layout = [
-    [sg.Text("Model URL:", size=(20, 1)), sg.Input(default_text=None, key="model_url", right_click_menu=ccp_right_click_menu)],
-    [sg.Button("Save"), sg.Button("Cancel")]
+        [sg.Text("Model URL:", size=(20, 1)), sg.Input(default_text=None, key="model_url", right_click_menu=ccp_right_click_menu)],
+        [sg.Button("Save"), sg.Button("Cancel")]
     ]
 
     window = sg.Window("BAI Model Download", layout, modal=True, icon="./resources/bai.ico")
@@ -44,10 +45,11 @@ def download_model_ui():
         if event in ["Copy ", "Cut", "Paste"]:
             handle_ccp(event, window)
 
+
 def handle_ccp(event, window):
     """
     Handles cut/copy/paste operations
-    
+
     Parameters:
     - event: The event to parse
     - window: Handle to the window we are interacting with
@@ -83,6 +85,7 @@ def handle_ccp(event, window):
         except tk.TclError:
             print("Clipboard error - clipboard empty or contains non text data")
 
+
 def transform_url(url):
     """Parses a url and generates the name of a directory we gotta deal with """
     # Parse the URL to get the path part
@@ -97,6 +100,7 @@ def transform_url(url):
 
     return f"models--{transformed}"
 
+
 def move_contents_and_cleanup(source_dir, target_dir):
     """Move files and clean up"""
     # Move files from source to target directory
@@ -109,6 +113,7 @@ def move_contents_and_cleanup(source_dir, target_dir):
         shutil.copy2(real_source_path, target_path)
     # Remove the source directory
     shutil.rmtree(source_dir)
+
 
 def download_hf_repo(repo_url):
     """Download a repo for HF and format it in a sane way for the user"""
@@ -137,6 +142,7 @@ def download_hf_repo(repo_url):
         # Clean up remaining nested directories
         shutil.rmtree(os.path.join(output_dir, model_dir_string))
         shutil.rmtree(os.path.join(output_dir, ".locks"))
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:

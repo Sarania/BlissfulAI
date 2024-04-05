@@ -14,7 +14,6 @@ except ImportError:
     sys.exit(1)
 
 
-
 def create_setup_window():
     """
     Function for creating the window to edit the programs settings
@@ -24,12 +23,13 @@ def create_setup_window():
     label_width = 20
     cuda_options = ["12.1", "11.8", "None"]
     layout = [
-    [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username")],
-    [sg.Text("CUDA Version:", size=(label_width, 1)), sg.Combo(cuda_options, default_value="None", key="cuda", readonly=True)],
-    [sg.Button("Save"), sg.Button("Cancel")]
+        [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username")],
+        [sg.Text("CUDA Version:", size=(label_width, 1)), sg.Combo(cuda_options, default_value="None", key="cuda", readonly=True)],
+        [sg.Button("Save"), sg.Button("Cancel")]
     ]
     window = sg.Window("BAI Easy setup", layout, modal=True, icon="./resources/bai.ico")
     return window
+
 
 def handle_setup_event():
     """
@@ -49,10 +49,10 @@ def handle_setup_event():
             settings_window.close()
             return values["cuda"]
 
+
 def main():
     """Main function for downloading models"""
-    ps = ProgramSettings()
-    cuda_version=handle_setup_event()
+    cuda_version = handle_setup_event()
     cuda_to_torch = {
         "12.1": "pip install torch --index-url https://download.pytorch.org/whl/cu121",
         "11.8": "pip install torch --index-url https://download.pytorch.org/whl/cu118"
