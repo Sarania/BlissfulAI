@@ -500,12 +500,11 @@ def handle_about_event():
     os_name, os_version = get_os_name_and_version()
     ps = ProgramSettings()
 
-    # Updated Layout with Image
     layout = [
         [sg.Column([[sg.Image("./resources/baiabout.png", size=(256, 256))]], justification="center", pad=((0, 36), (0, 0)))],
         [sg.Text("Blissful AI", justification="center", expand_x=True)],
         [sg.Text(f"Version {ps.VERSION}", justification="center", expand_x=True)],
-        [sg.Text("BlissfulAI copyleft 2024 Blyss Sarania under", justification="center", pad=((0, 0), (0, 0))), sg.Button("CC-BY-NC-SA", button_color=("blue", sg.theme_background_color()), border_width=0, tooltip="Click to visit license page", key="-LINK-", pad=((0, 0), (0, 0)))],
+        [sg.Text("BlissfulAI copyleft 2024 Blyss Sarania under CC-BY-NC-SA", justification="center", expand_x=True)],
         [sg.Text(f"CPU: {cpu_name}", justification="center", expand_x=True)],
         [sg.Text(f"RAM: {ram_total}GB", justification="center", expand_x=True)],
     ]
@@ -513,11 +512,6 @@ def handle_about_event():
     # Adding GPU details. For multiple GPUs, create a text element for each
     for index, gpu in enumerate(gpu_names):
         layout.append([sg.Text(f"GPU {index}: {gpu}", justification="center", expand_x=True)])
-    if os_name == "Windows":
-        major, middle, minor = os_version.split(".")
-        if int(minor) > 22000:
-            major = "11"
-        os_version = f"{major} Build {minor}"
     layout.append([sg.Text(f"OS: {os_name} {os_version}", justification="center", expand_x=True)])
     layout.append([sg.Column([[sg.Button("OK")]], justification="center")])
     # Window

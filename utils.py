@@ -22,10 +22,22 @@ def get_os_name_and_version():
     Returns the name and version of the operating system
     """
     os_name = platform.system()
-    if os_name in ["Windows", "Linux"]:
+    if os_name == "Windows":
         os_version = platform.version()
+        major, middle, minor = os_version.split(".")
+        if int(minor) > 22000:
+            major = "11"
+        os_version = f"{major} Build {minor}"
         return os_name, os_version
-
+    elif os_name == "Linux":
+        try:
+            import distro
+            os_name = distro.name(pretty=True)
+        except ImportError:
+            log("Distro not importable, can't detect distro name!")
+            os_name = "Unknown"
+        os_version = f"Kernel: {platform.release()}"
+        return os_name, os_version
     return os_name, "Version information not available"
 
 
@@ -64,13 +76,18 @@ def get_gpu_info():
             return ["Could not fetch GPU names: " + str(e)]
     elif platform.system() == "Linux":
         try:
-            all_info = subprocess.check_output("lspci | grep 'VGA' | cut -d ':' -f3", shell=True).decode().strip().split('\n')
+            all_info = subprocess.check_output("lspci | grep 'VGA'", shell=True).decode().strip().split('\n')
+        except subprocess.CalledProcessError:
+            try:
+                all_info = subprocess.check_output("lspci | grep '3D'", shell=True).decode().strip().split('\n')
+            except subprocess.CalledProcessError:
+                pass
+        if all_info:
             for info in all_info:
-                if info:  # Avoid adding empty lines
-                    gpu_names.append(info.strip())
+                infolist = info.split(":")
+                info = infolist[-1]
+                gpu_names.append(info.strip())
             return gpu_names
-        except subprocess.CalledProcessError as e:
-            return ["Could not fetch GPU names: " + str(e)]
     return ["GPU names not found"]
 
 
