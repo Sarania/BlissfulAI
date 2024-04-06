@@ -1182,7 +1182,9 @@ def main():
                 log("Updating fingerprint...")
                 now = str(datetime.now())
                 identity = generate_hash(str(message) + str(now))
-                ai.core_memory[line_number]({"content": message, "identity": identity, "rating": "", "date": now})
+                ai.core_memory[line_number]["content"] = message
+                ai.core_memory[line_number]["identity"] = identity
+                ai.core_memory[line_number]["date"] = now
             ps.special = ""
             update_main_window(window)
 
