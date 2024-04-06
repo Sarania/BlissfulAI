@@ -6,5 +6,6 @@ pynvml>=11.5.0
 PySimpleGUI==4.60.5
 spacy>=3.7.4
 transformers>=4.39.1
+distro>=1.0.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.7.3/en_core_web_trf-3.7.3-py3-none-any.whl
 
