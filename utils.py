@@ -65,6 +65,7 @@ def get_gpu_info():
     Get all GPU names for Linux/Windows.
     """
     gpu_names = []
+    all_info = None
     if platform.system() == "Windows":
         try:
             all_info = subprocess.check_output(["wmic", "path", "win32_videocontroller", "get", "name"], stderr=subprocess.STDOUT).decode().strip().split('\n')[1:]
