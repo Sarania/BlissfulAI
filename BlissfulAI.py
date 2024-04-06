@@ -513,6 +513,11 @@ def handle_about_event():
     # Adding GPU details. For multiple GPUs, create a text element for each
     for index, gpu in enumerate(gpu_names):
         layout.append([sg.Text(f"GPU {index}: {gpu}", justification="center", expand_x=True)])
+    if os_name == "Windows":
+        major, middle, minor = os_version.split(".")
+        if int(minor) > 22000:
+            major = "11"
+        os_version = f"{major} Build {minor}"
     layout.append([sg.Text(f"OS: {os_name} {os_version}", justification="center", expand_x=True)])
     layout.append([sg.Column([[sg.Button("OK")]], justification="center")])
     # Window
