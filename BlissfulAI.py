@@ -711,28 +711,27 @@ def handle_settings_event():
 
 def edit_response(initial_string):
     """
-    A function to edit a string and return the edited value using the UI
+    A function to edit a string and return the edited value using the UI, with support for long strings.
 
     Parameters:
     - initial_string: The string we are working with
     """
-    input_width = max(len(initial_string) + 10, 20)  # Ensure a minimum width
-    # input_width = min(input_width, 120)
+
     layout = [
-        [sg.Text("Edit the string:"), sg.InputText(initial_string, size=(input_width, 1))],
+        [sg.Text("Edit response:"), sg.Multiline(initial_string, size=(100, 3), key='MLINE')],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
-    window = sg.Window("Edit String", layout, icon="./resources/bai.ico", modal=True)
+    window = sg.Window("Edit Response", layout, icon="./resources/bai.ico", modal=True)
     while True:
         event, values = window.read(timeout=50)
         if event in [sg.WIN_CLOSED, "Cancel"]:
             window.close()
             return initial_string
         if event == "Save":
-            # When the user clicks "Save", return the edited string
-            edited_string = values[0]  # InputText values are accessed by their index
+            edited_string = values['MLINE'].rstrip()
             window.close()
             return edited_string
+
     window.close()
 
 
