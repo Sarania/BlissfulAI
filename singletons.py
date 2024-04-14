@@ -71,6 +71,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._default_model = ""  # The model to load on startup, saved to file
         self._default_personality = ""  # The personality to load on startup, saved to file
         self._do_stream = False  # Whether or not to stream the generated text to stdout, saved to file
+        self._autosave = True  # Whether or not to autosave the personality every minute, saved to file
         self._model_status = "unloaded"  # Current status of the model, not saved
         self._personality_status = "unloaded"  # Current status of the personality, not saved
         self._username = "User"  # Username, saved to file
@@ -165,6 +166,22 @@ class ProgramSettings(metaclass=SingletonMeta):
         if not isinstance(value, bool):
             raise ValueError("do_stream must be a boolean")
         self._do_stream = value
+
+    @property
+    def autosave(self):
+        """Gets the current autosave setting."""
+        return self._autosave
+
+    @autosave.setter
+    def autosave(self, value):
+        """Sets the autosave setting, ensuring it is a boolean value.
+
+        Parameters:
+            value: The new streaming setting (True or False).
+        """
+        if not isinstance(value, bool):
+            raise ValueError("autosave must be a boolean")
+        self._autosave = value
 
     @property
     def model_status(self):
@@ -264,6 +281,7 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_default_model": self._default_model,
             "_default_personality": self._default_personality,
             "_do_stream": self._do_stream,
+            "_autosave": self._autosave,
             "_username": self._username,
             "_template": self._template,
             "_auto_template": self._auto_template
@@ -292,10 +310,10 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_default_model": "",
             "_default_personality": "",
             "_do_stream": False,
+            "_autosave": True,
             "_username": "User",
             "_template": "BAI Opus",
             "_auto_template": False
-            # Add or update other default settings here as needed.
         }
 
         # Check if the settings file exists
@@ -316,6 +334,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         instance.default_model = data.get("_default_model", default_settings["_default_model"])
         instance.default_personality = data.get("_default_personality", default_settings["_default_personality"])
         instance.do_stream = data.get("_do_stream", default_settings["_do_stream"])
+        instance.autosave = data.get("_autosave", default_settings["_autosave"])
         instance.username = data.get("_username", default_settings["_username"])
         instance.template = data.get("_template", default_settings["_template"])
         instance.auto_template = data.get("_auto_template", default_settings["_auto_template"])
@@ -422,6 +441,22 @@ class Chatter(metaclass=SingletonMeta):
         self._system_memory = value
 
     @property
+    def guidance_messages(self):
+        """
+        A list of dictionaries that holds the temporary guidance messages.
+        """
+        return self._guidance_messages
+
+    @guidance_messages.setter
+    def guidance_messages(self, value):
+        """
+        Sets the guidance messages, validating it's a list
+        """
+        if not isinstance(value, list):
+            raise ValueError("guidance_messages must be a list")
+        self._guidance_messages = value
+
+    @property
     def personality_path(self):
         """
         str: The file path to the AI's personality definition file.
@@ -446,6 +481,7 @@ class Chatter(metaclass=SingletonMeta):
         self.core_memory = []
         self.working_memory = []
         self.system_memory = []
+        self.guidance_messages = []
         self.personality_path = ""
 
 

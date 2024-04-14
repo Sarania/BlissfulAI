@@ -370,8 +370,14 @@ def update_working_memory(user_message):
         chosen_memories = []
         log("No matching memories found.")
 
-    # Combine selected matches with recent and system messages, ensuring uniqueness.
-    selected_memories = chosen_memories + recent_memories
+    selected_memories = chosen_memories + recent_memories + ai.guidance_messages
+    for i, entry in enumerate(ai.guidance_messages):
+        entry["turns"] -= 1
+        if entry["turns"] == 0:
+            log(f"Guidance message expired: {entry['content']} ")
+            del ai.guidance_messages[i]
+        else:
+            ai.guidance_messages[i]["turns"] = entry["turns"]
 
     # Insert system messages at the beginning of the working memory.
     new_working_memory = ai.system_memory + selected_memories

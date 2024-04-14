@@ -23,6 +23,7 @@ Created on Mon Mar 4 12:00:00 2024
 @author: Blyss Sarania
 """
 import signal
+import time
 import os
 import sys
 import gc
@@ -458,7 +459,7 @@ def display_message(window, sender_name=None, message="", sender_color="black", 
     window["-OUTPUT-"].print(message, text_color=message_color, end="\n")
 
 
-def update_hard_memory():
+def update_hard_memory(silent=0):
     """Update the AI"s "hard memory" - the hard drive copy of it"s memory"""
     ps = ProgramSettings()
     ai = AI()
@@ -485,7 +486,8 @@ def update_hard_memory():
             with open("./resources/Blissful Writer.json", 'w', encoding='utf-8') as file:
                 json.dump(filtered_messages, file, indent=4)
     else:
-        log("Nothing to save!")
+        if silent == 0:
+            log("Nothing to save!")
 
 
 def handle_about_event():
@@ -648,6 +650,7 @@ def create_settings_window():
             "default_model_path": "(Default Model) - The model to load on startup.",
             "default_personality_path": "(Default Personality) - The personality to load on startup.",
             "stream": "(Stream output to STDOUT?) - Whether to stream the generated tokens to stdout as they are generated.",
+            "autosave": "(Autosave personality?) - If enabled, automatically save the loaded personality once a minute.",
             "auto_template": "(TRY to auto-select best): tries to automatically select the best template based on the model. If it fails, falls back to user selection."
         }
         window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
@@ -665,14 +668,14 @@ def create_settings_window():
         [sg.Text("Model Template:", size=(label_width, 1)), sg.Combo(template_options, default_value=ps.template, key="template", readonly=True, enable_events=True), sg.Checkbox("TRY to auto-select best", default=ps.auto_template, key="auto_template", enable_events=True)],
         [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, enable_events=True, key="default_model_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_model_path")],
         [sg.Text("Default Personality:", size=(label_width, 1)), sg.Input(default_text=ps.default_personality, enable_events=True, key="default_personality_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_personality_path")],
-        [sg.Text("Stream output to STDOUT?", size=(label_width, 1)), sg.Checkbox("", default=ps.do_stream, key="stream", enable_events=True)],
+        [sg.Text("Stream output to STDOUT?", size=(label_width, 1)), sg.Checkbox("", default=ps.do_stream, key="stream", enable_events=True), sg.Text("Autosave personality?", size=(label_width, 1)), sg.Checkbox("", default=ps.autosave, key="autosave", enable_events=True)],
         [sg.Text("Help: Explanations of settings will appear here.", size=(60, 3), key="explanation", text_color="green")],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
     window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.ico", finalize=True)
     event_names = [
         "username", "backend", "quant", "template", "default_model_path",
-        "default_personality_path", "stream", "auto_template"
+        "default_personality_path", "stream", "auto_template", "autosave"
     ]
 
     for evname in event_names:
@@ -703,6 +706,7 @@ def handle_settings_event():
             ps.username = values["username"]
             ps.template = values["template"]
             ps.auto_template = values["auto_template"]
+            ps.autosave = values["autosave"]
             log("Settings updated.")
             ps.save_to_file()
             settings_window.close()
@@ -715,6 +719,9 @@ def edit_response(initial_string):
 
     Parameters:
     - initial_string: The string we are working with
+
+    Returns:
+    - the edited string, or the original if no change
     """
 
     layout = [
@@ -733,6 +740,66 @@ def edit_response(initial_string):
             return edited_string
 
     window.close()
+
+
+def create_guidance_message():
+    """
+    A function to create temporary system messages to guide the conversation
+    """
+    def update_display():
+        current_messages = ""
+        for i, entry in enumerate(ai.guidance_messages):
+            current_messages += f"{i+1}: {entry['content']}; Turns remaining: {entry['turns']}\n"
+        guidance_window["CURMSG"].update(current_messages)
+
+    def handle_right_click(tk_event, guidance_window):
+        if len(ai.guidance_messages) > 0:
+            index = output_widget.index(f"@{tk_event.x},{tk_event.y}")
+            line_number = int(index.split(".")[0]) - 1
+
+            def delete_entry():
+                log(f"Deleting {ai.guidance_messages[line_number]}...")
+                del ai.guidance_messages[line_number]
+                update_display()
+
+            try:
+                context_menu = tk.Menu(output_widget, tearoff=0)
+                context_menu.add_command(label="Delete", command=delete_entry)
+                context_menu.tk_popup(tk_event.x_root, tk_event.y_root)
+            finally:
+                context_menu.grab_release()
+    ai = AI()
+
+    layout = [
+        [sg.Text("Current guidance:", size=(22, 1)), sg.Multiline(size=(100, 10), enable_events=True, disabled=True, key="CURMSG")],
+        [sg.Text("New Guidance Message:", size=(22, 1)), sg.Multiline("", size=(100, 3), key='MLINE')],
+        [sg.Text("Number of turns:", size=(22, 1)), sg.InputText("", size=(10, 1), key='TURNS')],
+        [sg.Text("Help: Guidance messages are temporary system messages you can use to guide the conversation. They persist only for the set number of turns then disappear from memory. They are not saved between sessions. A 'turn' consists of one user input plus one AI response.", size=(80, 3), text_color="green")],
+        [sg.Button("Add"), sg.Button("Close")]
+    ]
+    guidance_window = sg.Window("Create Guidance Message", layout, icon="./resources/bai.ico", modal=True, finalize=True)
+    update_display()
+    output_widget = guidance_window["CURMSG"].Widget
+    output_widget.bind("<Button-3>", lambda tk_event: handle_right_click(tk_event, guidance_window))
+    guidance_window['MLINE'].set_focus()
+    while True:
+        event, values = guidance_window.read(timeout=50)
+        if event in [sg.WIN_CLOSED, "Close"]:
+            guidance_window.close()
+            break
+        if event == "Add":
+            if values['MLINE'] and values['TURNS']:
+                new_message = values['MLINE'].rstrip()
+                try:
+                    num_turns = int(values['TURNS'])
+                    ai.guidance_messages.append({"role": "system", "content": new_message, "turns": num_turns})
+                    update_display()
+                    guidance_window["MLINE"].update("")
+                    guidance_window["TURNS"].update("")
+                except ValueError:
+                    popup_message("Number of turns must be an integer!")
+            else:
+                popup_message("Please fill out both a message and the number of turns before adding!")
 
 
 def handle_middle_click(event, window, context_menu, last_entry):
@@ -831,12 +898,12 @@ def create_chat_window():
 
     layout = [
         [sg.Multiline(size=(60, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
-        [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True), sg.Button("Load Model"), sg.Button("Create Personality"), sg.Button("Load Personality"), sg.Button("Edit Personality"), sg.Button("Settings")],
+        [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True), sg.Button("Guidance"), sg.Button("Load Model"), sg.Button("Create Personality"), sg.Button("Load Personality"), sg.Button("Edit Personality"), sg.Button("Settings")],
         [sg.Multiline(key="-INPUT-", size=(40, 3), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
         [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About")],
     ]
     window = sg.Window("BlissfulAI", layout, resizable=True, finalize=True, size=(width, height), icon="./resources/bai.ico")
-    window["-INPUT-"].Widget.bind("<FocusIn>", "_FOCUS_IN_")
+    window['-INPUT-'].set_focus()
     # Bind to the resize event
     window.TKroot.bind("<Configure>", lambda event: enforce_minimum_size(window, width, height))
     window["-OUTPUT-"].Widget.config(selectbackground="#777777")
@@ -1135,6 +1202,7 @@ def main():
         threading.Thread(target=load_model, args=(llm.model_path, model_queue), daemon=True).start()
 
     # Main program loop
+    ticks = 0
     while True:
         event, values = window.read(timeout=50)
         # The first section checks Window and ps.model_status events
@@ -1229,6 +1297,8 @@ def main():
                     popup_message("Please load a model first!")
             else:
                 popup_message("No personality to send a message to, silly!")
+        elif event == "Guidance":
+            create_guidance_message()
         # Check if the model is busy and if not, (hopefully) unload the previous model and then start a thread to load the new model
         elif event == "Load Model":
             if ps.model_status == "ready":
@@ -1309,7 +1379,14 @@ def main():
                 popup_message(f"The model is currently {ps.model_status}. Please wait before sending messages.")
             elif ps.model_status == "unloaded":
                 popup_message("Please load a model first!")
-        update_system_status(window, llm.model_path)
+        ticks += 1
+        if ticks % 5 == 0:
+            update_system_status(window, llm.model_path)
+        if ticks == 50:
+            if ps.autosave:
+                log("Autosaving personality...")
+                update_hard_memory(1)
+            ticks = 0
 
 
 parser = argparse.ArgumentParser(description="")
