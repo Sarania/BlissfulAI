@@ -23,7 +23,6 @@ Created on Mon Mar 4 12:00:00 2024
 @author: Blyss Sarania
 """
 import signal
-import time
 import os
 import sys
 import gc
@@ -1382,7 +1381,7 @@ def main():
         ticks += 1
         if ticks % 5 == 0:
             update_system_status(window, llm.model_path)
-        if ticks == 50:
+        if ticks == 750:
             if ps.autosave:
                 log("Autosaving personality...")
                 update_hard_memory(1)
