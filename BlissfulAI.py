@@ -1388,7 +1388,7 @@ def main():
         if ticks % 5 == 0:
             update_system_status(window, llm.model_path)
         if ticks == 750:
-            if ps.autosave:
+            if (ps.autosave and ps.personality_status == "loaded") and ps.model_status != "inferencing":
                 log("Autosaving personality...")
                 update_hard_memory(1)
             ticks = 0

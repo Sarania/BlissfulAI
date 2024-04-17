@@ -480,15 +480,13 @@ def post_process(input_string, llm):
                 response = input_string[response_start:].lstrip("\n \u200b")
             else:
                 response = input_string
-
-            if template == "BAI Zephyr" or template_guess == "Zephyr":
+            response = input_string[response_start:].lstrip("\n \u200b")
+            if template == "BAI Zephyr" or template_guess == "Zephyr":  # Not sure if this is necessary?
                 if response.startswith("<|assistant|>"):
                     response = response[13:]
             elif template == "BAI Opus" or template_guess == "Opus":
                 if response.startswith("<|im_start|>"):
                     response = response[12:]
-            response = input_string[response_start:].lstrip("\n \u200b")
-
             tag_index = response.find(end_tag)
             if tag_index != -1:
                 response = response[:tag_index]
@@ -504,10 +502,13 @@ def post_process(input_string, llm):
                             response = result_string
                         response = response.strip()
                     if len(response) != 0 and response[-1] == "*":
-                        # Check the number of asterisks so we don"t leave a dangling one
+                        # Last character is * so check the number of asterisks so we don't leave a dangling one
                         if response.count("*") % 2 != 0:
                             response = response[:-1]
                             response = response.rstrip()
+                    elif response.count("*") % 2 != 0:
+                        response += "*"  # If the model didn't close it's roleplay, close it for her.
+                    response = response.replace("\n", "")
                 else:
                     # we need to find the last ``` and make sure truncation occurs after that
                     pass
