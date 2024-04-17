@@ -43,6 +43,7 @@ import torch
 if sys.platform == "win32":
     import win32api
     import win32con
+max_history = 200
 
 
 class LanguageModel():
@@ -288,15 +289,16 @@ def update_main_window(window):
     if ps.mode == "chat":
         clear_conversation(window)
         for i, message in enumerate(ai.core_memory):
-            sender_role = message["role"]
-            sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
-            sender_color = "purple" if sender_role == "assistant" else "blue"
-            if ai.core_memory[i]["rating"] == "+":
-                display_message(window, sender_name, message["content"], sender_color, "green")
-            elif ai.core_memory[i]["rating"] == "-":
-                display_message(window, sender_name, message["content"], sender_color, "red")
-            else:
-                display_message(window, sender_name, message["content"], sender_color, "black")
+            if len(ai.core_memory) - max_history <= i:
+                sender_role = message["role"]
+                sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
+                sender_color = "purple" if sender_role == "assistant" else "blue"
+                if ai.core_memory[i]["rating"] == "+":
+                    display_message(window, sender_name, message["content"], sender_color, "green")
+                elif ai.core_memory[i]["rating"] == "-":
+                    display_message(window, sender_name, message["content"], sender_color, "red")
+                else:
+                    display_message(window, sender_name, message["content"], sender_color, "black")
     elif ps.mode == "story":
         window['-SYSTEM-'].update(ai.system)
         window['-CHARACTERS-'].update(ai.characters)
@@ -322,7 +324,7 @@ def handle_edit_event():
         event, values = edit_window.read()
         if event in (sg.WIN_CLOSED, "Cancel"):
             edit_window.close()
-            break
+            return False
         if event == "Save":
             if ps.mode == "chat":
                 for key, value in ai.personality_definition.items():
@@ -336,16 +338,15 @@ def handle_edit_event():
                 ai.system_memory = system_messages
                 update_hard_memory()
                 edit_window.close()
-                break
-            if ps.mode == "story":
+            elif ps.mode == "story":
                 for index, (key, value) in enumerate(ai.personality_definition.items()):
                     if index == 0:
                         continue  # Skip the rest of the loop for the first item
                     expected_type = type(value)
                     ai.personality_definition[key] = expected_type(values[key])
-
                 update_hard_memory()
                 edit_window.close()
+            return True
         if event in numeric_fields:
             # We received a change in one of our number only fields
             if values[event]:  # Check if values[event] is not blank
@@ -371,8 +372,8 @@ def handle_create_event():
         event, values = window.read()
         if event in (sg.WIN_CLOSED, "Cancel"):
             window.close()
-            break
-        if event == "Save":
+            return False
+        elif event == "Save":
             selected_folder = select_folder()
             if selected_folder != "":
                 current_dir = selected_folder
@@ -391,8 +392,8 @@ def handle_create_event():
                 ps.personality_status = "loaded"
                 update_hard_memory()
                 window.close()
-                break
-        if event in numeric_fields:
+                return True
+        elif event in numeric_fields:
             # We received a change in one of our number only fields
             if values[event]:  # Check if values[event] is not blank
                 if not is_number(values[event]):  # Test if the user tried to stash a letter in our numbers
@@ -751,7 +752,7 @@ def create_guidance_message():
             current_messages += f"{i+1}: {entry['content']}; Turns remaining: {entry['turns']}\n"
         guidance_window["CURMSG"].update(current_messages)
 
-    def handle_right_click(tk_event, guidance_window):
+    def handle_right_click(tk_event):
         if len(ai.guidance_messages) > 0:
             index = output_widget.index(f"@{tk_event.x},{tk_event.y}")
             line_number = int(index.split(".")[0]) - 1
@@ -779,7 +780,7 @@ def create_guidance_message():
     guidance_window = sg.Window("Create Guidance Message", layout, icon="./resources/bai.ico", modal=True, finalize=True)
     update_display()
     output_widget = guidance_window["CURMSG"].Widget
-    output_widget.bind("<Button-3>", lambda tk_event: handle_right_click(tk_event, guidance_window))
+    output_widget.bind("<Button-3>", handle_right_click)
     guidance_window['MLINE'].set_focus()
     while True:
         event, values = guidance_window.read(timeout=50)
@@ -816,6 +817,7 @@ def handle_middle_click(event, window, context_menu, last_entry):
         widget = event.widget
         index = widget.index(f"@{event.x},{event.y}")
         line_number = int(index.split(".")[0]) - 1
+        line_number += (len(ai.core_memory) - max_history)  # This compensates for the chat window only showing the last max_history
 
         def update_rating_up():
             if 0 <= line_number < len(ai.core_memory):
@@ -867,7 +869,8 @@ def update_context_menu(event, window):
     ai = AI()
     widget = event.widget
     index = widget.index(f"@{event.x},{event.y}")
-    line_number = int(index.split(".")[0]) - 1  # Assuming line numbers start at 1, adjust for 0-based indexing
+    line_number = int(index.split(".")[0]) - 1
+    line_number += (len(ai.core_memory) - max_history)  # This compensates for the chat window only showing the last max_history
     output_widget = window["-OUTPUT-"].Widget
     context_menu = tk.Menu(output_widget, tearoff=0)
     if line_number == len(ai.core_memory) - 1:
@@ -1326,8 +1329,11 @@ def main():
             if ps.personality_status == "loaded":
                 log("Saving current personality...")
                 update_hard_memory()
+                old_personality = ai.personality_path
                 ai.reset()
-            handle_create_event()
+            if not handle_create_event():
+                load_personality(old_personality)
+            update_main_window(window)
         elif event == "Load Personality":
             if ps.model_status != "inferencing":
                 if ps.personality_status == "loaded":
@@ -1352,9 +1358,9 @@ def main():
             if ps.model_status != "inferencing":
                 if ps.personality_status == "loaded":
                     update_hard_memory()
-                    handle_edit_event()
-                    load_personality(ai.personality_path)
-                    update_main_window(window)
+                    if handle_edit_event():
+                        load_personality(ai.personality_path)
+                        update_main_window(window)
                 else:
                     popup_message("No personality loaded to edit!")
             else:
