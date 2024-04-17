@@ -1147,6 +1147,7 @@ def main():
     ps.backend = ps.backend.lower()
     model_response = Queue()
     model_queue = Queue()
+    update_window = threading.Event()
     ps.load_from_file()  # load the settings from settings.json
     # Clear the previous logfile if it exists
     if os.path.exists("./logfile.txt"):
@@ -1235,10 +1236,8 @@ def main():
                 ai.core_memory.pop()
                 user_message = ai.core_memory[-1]["content"]
                 ai.core_memory.pop()
-                update_main_window(window)
-                display_message(window, ps.username, user_message, "blue", "black")
                 ps.model_status = "inferencing"
-                threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response), daemon=True).start()
+                threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response, update_window), daemon=True).start()
             else:
                 log("Cannot regenerate response when model is busy!")
                 ps.special = ""
@@ -1276,7 +1275,7 @@ def main():
         if not model_response.empty():
             output = model_response.get()
             if ps.mode == "chat":
-                display_message(window, ai.personality_definition["name"], output, "purple", "black")
+                update_main_window(window)
             elif ps.mode == "story":
                 display_message(window, None, f"{ai.starter}{output}", None, "black")
             window["-NOTICE-"].update("")  # Clear the typing message.
@@ -1287,11 +1286,10 @@ def main():
             if ps.personality_status == "loaded":
                 if ps.model_status == "ready":
                     user_message = values["-INPUT-"]
-                    display_message(window, ps.username, user_message, "blue", "black")
                     window["-INPUT-"].update("")  # Clear the input field
                     log("User message: " + user_message)
                     ps.model_status = "inferencing"
-                    threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response), daemon=True).start()
+                    threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response, update_window), daemon=True).start()
                 elif ps.model_status in ["inferencing", "loading"]:
                     # Show a popup if the model is busy, loading, or not yet loaded.
                     popup_message(f"The model is currently {ps.model_status}. Please wait before sending messages.")
@@ -1384,6 +1382,9 @@ def main():
                 popup_message(f"The model is currently {ps.model_status}. Please wait before sending messages.")
             elif ps.model_status == "unloaded":
                 popup_message("Please load a model first!")
+        if update_window.is_set():
+            update_main_window(window)
+            update_window.clear()
         ticks += 1
         if ticks % 5 == 0:
             update_system_status(window, llm.model_path)

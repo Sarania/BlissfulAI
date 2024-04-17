@@ -116,7 +116,7 @@ def load_model(new_model, queue):
 
 
 @timed_execution
-def threaded_model_response(llm, user_message, model_response):
+def threaded_model_response(llm, user_message, model_response, update_window):
     """
     This function is called via a thread and handles updating memory and working memory and then running inference
 
@@ -133,6 +133,7 @@ def threaded_model_response(llm, user_message, model_response):
         now = str(datetime.now())
         identity = generate_hash(str(user_message) + str(now))
         ai.core_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
+        update_window.set()
         ai.working_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
         # Run the language models and update the AI's memory with it's output
         response = generate_model_response(llm)
