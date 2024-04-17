@@ -36,7 +36,7 @@ from datetime import datetime
 from queue import Queue
 import webbrowser
 import PySimpleGUI as sg
-from inference_engine import threaded_model_response, threaded_story_response, load_model
+from inference_engine import threaded_model_response, load_model
 from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, nvidia
 from singletons import AI, ProgramSettings
 import torch
@@ -262,19 +262,7 @@ def clear_conversation(window):
     Parameters:
     - window: a handle to the window
     """
-    ps = ProgramSettings()
-    if ps.mode == "chat":
-        window["-OUTPUT-"].update("")
-    elif ps.mode == "story":
-        window['-SYSTEM-'].update("")
-        window['-CHARACTERS-'].update("")
-        window['-STYLE-'].update("")
-        window['-SUMMARY-'].update("")
-        window['-PLOT-'].update("")
-        window['-LENGTH-'].update("")
-        window['-STARTER-'].update("")
-        window['-Log-'].update("")
-        window['-OUTPUT-'].update("")
+    window["-OUTPUT-"].update("")
 
 
 def update_main_window(window):
@@ -286,27 +274,18 @@ def update_main_window(window):
     """
     ai = AI()
     ps = ProgramSettings()
-    if ps.mode == "chat":
-        clear_conversation(window)
-        for i, message in enumerate(ai.core_memory):
-            if len(ai.core_memory) - max_history <= i:
-                sender_role = message["role"]
-                sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
-                sender_color = "purple" if sender_role == "assistant" else "blue"
-                if ai.core_memory[i]["rating"] == "+":
-                    display_message(window, sender_name, message["content"], sender_color, "green")
-                elif ai.core_memory[i]["rating"] == "-":
-                    display_message(window, sender_name, message["content"], sender_color, "red")
-                else:
-                    display_message(window, sender_name, message["content"], sender_color, "black")
-    elif ps.mode == "story":
-        window['-SYSTEM-'].update(ai.system)
-        window['-CHARACTERS-'].update(ai.characters)
-        window['-STYLE-'].update(ai.style)
-        window['-SUMMARY-'].update(ai.summary)
-        window['-PLOT-'].update(ai.plot)
-        window['-LENGTH-'].update(ai.length)
-        window['-STARTER-'].update(ai.starter)
+    clear_conversation(window)
+    for i, message in enumerate(ai.core_memory):
+        if len(ai.core_memory) - max_history <= i:
+            sender_role = message["role"]
+            sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
+            sender_color = "purple" if sender_role == "assistant" else "blue"
+            if ai.core_memory[i]["rating"] == "+":
+                display_message(window, sender_name, message["content"], sender_color, "green")
+            elif ai.core_memory[i]["rating"] == "-":
+                display_message(window, sender_name, message["content"], sender_color, "red")
+            else:
+                display_message(window, sender_name, message["content"], sender_color, "black")
 
 
 def handle_edit_event():
@@ -315,7 +294,6 @@ def handle_edit_event():
     dictionary based on user inputs from the edit window.
     """
     ai = AI()
-    ps = ProgramSettings()
     numeric_fields = ("top_k", "top_p", "temperature", "response_length", "typical_p",  # A list of all the fields that should contain only numbers
                       "stm_size", "ltm_size", "length_penalty", "num_beams", "num_keywords", "repetition_penalty")
     edit_window = create_edit_window()
@@ -326,26 +304,17 @@ def handle_edit_event():
             edit_window.close()
             return False
         if event == "Save":
-            if ps.mode == "chat":
-                for key, value in ai.personality_definition.items():
-                    expected_type = type(value)
-                    ai.personality_definition[key] = expected_type(values[key])
-                log("Personality_defition updated.")
-                # Split the text area content into lines, each representing a message"s content
-                edited_contents = values["messages_editor"].split("\n")
-                # Update system_messages with the new contents
-                system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
-                ai.system_memory = system_messages
-                update_hard_memory()
-                edit_window.close()
-            elif ps.mode == "story":
-                for index, (key, value) in enumerate(ai.personality_definition.items()):
-                    if index == 0:
-                        continue  # Skip the rest of the loop for the first item
-                    expected_type = type(value)
-                    ai.personality_definition[key] = expected_type(values[key])
-                update_hard_memory()
-                edit_window.close()
+            for key, value in ai.personality_definition.items():
+                expected_type = type(value)
+                ai.personality_definition[key] = expected_type(values[key])
+            log("Personality_defition updated.")
+            # Split the text area content into lines, each representing a message"s content
+            edited_contents = values["messages_editor"].split("\n")
+            # Update system_messages with the new contents
+            system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
+            ai.system_memory = system_messages
+            update_hard_memory()
+            edit_window.close()
             return True
         if event in numeric_fields:
             # We received a change in one of our number only fields
@@ -453,38 +422,27 @@ def display_message(window, sender_name=None, message="", sender_color="black", 
     - sender_color: The color for the sender"s name, string.
     - message_color: The color for the message text, string.    - background_color: The background color for both sender"s name and message, string.
     """
-    ps = ProgramSettings()
-    if ps.mode == "chat":
-        window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
+    window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
     window["-OUTPUT-"].print(message, text_color=message_color, end="\n")
 
 
 def update_hard_memory(silent=0):
-    """Update the AI"s "hard memory" - the hard drive copy of it"s memory"""
+    """Update the AI's "hard memory" - the hard drive copy of it"s memory"""
     ps = ProgramSettings()
     ai = AI()
     if ps.personality_status != "unloaded":
-        if ps.mode == "chat":
-            if ai.personality_definition["persistent"]:  # We save the conversation history only if persistence is enabled
-                filtered_messages = [message for message in ai.core_memory if message["role"] != "system"]
-            else:
-                filtered_messages = []
-            filtered_messages.insert(0, ai.personality_definition)
-            personality_name = ai.personality_definition["name"]
-            core_path = os.path.join(ai.personality_path, f"{personality_name}.json")
-            sys_path = os.path.join(ai.personality_path, f"{personality_name}_system_messages.json")
-            with open(core_path, "w", encoding="utf-8") as file:
-                json.dump(filtered_messages, file, indent=4)
-            with open(sys_path, "w", encoding="utf-8") as file:
-                json.dump(ai.system_memory, file, indent=4)
-        elif ps.mode == "story":
+        if ai.personality_definition["persistent"]:  # We save the conversation history only if persistence is enabled
+            filtered_messages = [message for message in ai.core_memory if message["role"] != "system"]
+        else:
             filtered_messages = []
-            filtered_messages.insert(0, ai.personality_definition)
-            personality_name = ai.personality_definition["name"]
-            current_status = {"system": ai.system, "characters": ai.characters, "plot": ai.plot, "style": ai.style, "summary": ai.summary, "length": ai.length, "starter": ai.starter}
-            filtered_messages.insert(1, current_status)
-            with open("./resources/Blissful Writer.json", 'w', encoding='utf-8') as file:
-                json.dump(filtered_messages, file, indent=4)
+        filtered_messages.insert(0, ai.personality_definition)
+        personality_name = ai.personality_definition["name"]
+        core_path = os.path.join(ai.personality_path, f"{personality_name}.json")
+        sys_path = os.path.join(ai.personality_path, f"{personality_name}_system_messages.json")
+        with open(core_path, "w", encoding="utf-8") as file:
+            json.dump(filtered_messages, file, indent=4)
+        with open(sys_path, "w", encoding="utf-8") as file:
+            json.dump(ai.system_memory, file, indent=4)
     else:
         if silent == 0:
             log("Nothing to save!")
@@ -572,64 +530,38 @@ def create_edit_window():
     label_width = 20
     string_width = 16
     num_width = 16
-
-    if ps.mode == "chat":
-        # System messages section
-        # Serialize system_messages for editing
-        editable_messages = "\n".join([msg["content"] for msg in ai.system_memory])
-        messages_editor = [[sg.Multiline(default_text=editable_messages, size=(120, 10), enable_events=True, key="messages_editor")]]
-        # Update layout
-        layout = [
-            [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
-            [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
-            [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
-            [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
-            [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
-            [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
-            [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
-            [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
-            [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
-            [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-            [sg.Text("Help: (parameter)(range)(starter value)", size=(80, 1), key="expl", text_color="green")],
-            [sg.Text("Help: Explanations of parameters will appear here.", size=(80, 3), key="explanation", text_color="green")],
-            [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
-            [sg.Column(messages_editor, vertical_alignment="top")],
-            [sg.Button("Save"), sg.Button("Cancel")]
-        ]
-        event_names = [
-            "name", "top_p", "typical_p", "top_k", "temperature",
-            "length_penalty", "repetition_penalty", "response_length",
-            "stm_size", "ltm_size", "num_keywords", "num_beams",
-            "persistent", "messages_editor"
-        ]
-
-    elif ps.mode == "story":
-        layout = [
-            [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
-            [sg.Text("Name", size=(label_width, 1)), sg.Text(ai.personality_definition["name"], size=(string_width - 2, 1), key="name", relief=sg.RELIEF_SUNKEN, background_color="#a3a3a3"), sg.Text("")],
-            [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
-            [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
-            [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
-            [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
-            [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
-            [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
-            [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
-            [sg.Text("Help: (parameter)(range)(starter value)", size=(80, 1), key="expl", text_color="green")],
-            [sg.Text("Help: Explanations of parameters will appear here.", size=(80, 3), key="explanation", text_color="green")],
-            [sg.Button("Save"), sg.Button("Cancel")]
-        ]
-
-        event_names = [
-            "name", "top_p", "typical_p", "top_k", "temperature",
-            "length_penalty", "repetition_penalty", "response_length",
-            "num_beams"
-        ]
-
+    # System messages section
+    # Serialize system_messages for editing
+    editable_messages = "\n".join([msg["content"] for msg in ai.system_memory])
+    messages_editor = [[sg.Multiline(default_text=editable_messages, size=(120, 10), enable_events=True, key="messages_editor")]]
+    # Update layout
+    layout = [
+        [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
+        [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
+        [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
+        [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
+        [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
+        [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
+        [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
+        [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
+        [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
+        [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
+        [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
+        [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
+        [sg.Text("Help: (parameter)(range)(starter value)", size=(80, 1), key="expl", text_color="green")],
+        [sg.Text("Help: Explanations of parameters will appear here.", size=(80, 3), key="explanation", text_color="green")],
+        [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
+        [sg.Column(messages_editor, vertical_alignment="top")],
+        [sg.Button("Save"), sg.Button("Cancel")]
+    ]
+    event_names = [
+        "name", "top_p", "typical_p", "top_k", "temperature",
+        "length_penalty", "repetition_penalty", "response_length",
+        "stm_size", "ltm_size", "num_keywords", "num_beams",
+        "persistent", "messages_editor"
+    ]
     window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon="./resources/bai.ico")
 
     for evname in event_names:
@@ -917,86 +849,6 @@ def create_chat_window():
     return window
 
 
-def mode_selection_interface():
-    """
-    Creates and displays a window for the user to select between the modes
-    """
-    layout = [
-        [sg.Text("Please choose your mode:", justification='center', expand_x=True)],
-        [sg.Column([[sg.Button("Chat")], [sg.Button("Story")]], element_justification='center', expand_x=True)]
-    ]
-    # Create the window with the layout
-    window = sg.Window("BlissfulAI", layout, resizable=True, finalize=True, icon="./resources/bai.ico")
-
-    ps = ProgramSettings()
-    while True:
-        event, _ = window.read(timeout=100)
-        if event == sg.WINDOW_CLOSED:
-            graceful_shutdown()
-            break
-        if event == "Chat":
-            log("Chat mode selected")
-            ps.mode = "chat"
-            break
-        if event == "Story":
-            log("Story mode selected")
-            ps.mode = "story"
-            break
-    window.close()
-
-
-def create_story_window():
-    """
-    Creates the main window for interacting with the AI in story mode
-
-    - window: A handle to the created window
-    """
-    label_width = 8
-    # width, height = 800, 500
-    c_right_click_menu = ["", ["Copy "]]
-    # ccp_right_click_menu = ["", ["Copy", "Cut", "Paste"]]
-
-    layout = [
-        [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True)],
-        [
-            sg.Text("System:", size=(label_width, 1)), sg.Multiline(size=(40, 6), key="-SYSTEM-", autoscroll=True),
-            sg.Text("Plot:", size=(label_width, 1)), sg.Multiline(size=(40, 6), key="-PLOT-", autoscroll=True),
-            sg.Column(  # Column for the Length label and input field
-                [
-                    [sg.Text("Length:", size=(label_width, 1))],
-                    [sg.InputText(size=(10, 1), key="-LENGTH-")]
-                ],
-                element_justification="right"  # Aligns the elements in the column to the right
-            )
-        ],
-        [
-            sg.Text("Style:", size=(label_width, 1)), sg.Multiline(size=(40, 6), key="-STYLE-", autoscroll=True),
-            sg.Text("Characters:", size=(label_width, 1)), sg.Multiline(size=(40, 6), key="-CHARACTERS-", autoscroll=True)
-        ],
-        [
-            sg.Text("Summary:", size=(label_width, 1)), sg.Multiline(size=(40, 6), key="-SUMMARY-", autoscroll=True),
-            sg.Text("Starter:", size=(label_width, 1)), sg.Multiline(size=(40, 6), key="-STARTER-", autoscroll=True),
-            sg.Stretch(),  # This will push the elements to the right
-            sg.Column(
-                [
-                    [sg.Button("Load Model", size=(10, 2))],
-                    [sg.Button("Write!", size=(10, 1))],
-                    [sg.Button("Edit Writer", size=(10, 2))]
-                ],
-                element_justification="right"
-            )
-        ],
-        [
-            sg.Text("Log:", size=(label_width, 1)), sg.Multiline(size=(40, 20), key="-LOG-", right_click_menu=c_right_click_menu, enable_events=True, autoscroll=True, disabled=True),
-            sg.Text("Output:", size=(label_width, 1)), sg.Multiline(size=(40, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, enable_events=True, autoscroll=False, disabled=True)
-        ],
-        [sg.Stretch()],  # This will take up all the space in between
-        [sg.Text("", size=(80, 1), key="-STATUS-", text_color="Purple", expand_x=True)]
-    ]
-    window = sg.Window("BlissfulAI", layout, font=("DejaVu Sans Mono", 10), resizable=True, finalize=True, icon="./resources/bai.ico")
-    return window
-
-
 def enforce_minimum_size(window, min_width, min_height):
     """
     Enforce the minimum size of the window.
@@ -1027,107 +879,85 @@ def load_personality(personality_path):
     ps = ProgramSettings()
     # Define the path for easier access and readability
     personality_basename = os.path.basename(personality_path)
-    config_path = os.path.join(personality_path, f"{personality_basename}.json") if ps.mode == "chat" else personality_path
-    backup_path = os.path.join(personality_path, f"{personality_basename}_backup.json") if ps.mode == "chat" else f"{personality_path}_backup.json"
+    config_path = os.path.join(personality_path, f"{personality_basename}.json")
+    backup_path = os.path.join(personality_path, f"{personality_basename}_backup.json")
     system_message_path = os.path.join(personality_path, f"{personality_basename}_system_messages.json")
     # Check if the personality configuration file exists
     if os.path.exists(config_path):
         # Make a backup of the personality configuration file
         shutil.copy(config_path, backup_path)
-        if ps.mode == "chat":
-            with open(config_path, "r", encoding="utf-8") as file:  # Load in the  main personality file
-                data = json.load(file)
-                personality_definition = data[0]  # The first entry in this list of dictionaries is the personality_definition
-                memory = data[1:]  # The remaining entries constitute it"s memory
-                # Log the loaded personality details
-                log(f"Loading personality ({personality_definition['name']})...")
-                for key, value in personality_definition.items():
-                    log(f"{key}: {value}")
-                log("---------------------------------------------------------")
-                # Load the system messages from the appropriate location
-                ai.system_memory = []
-                with open(system_message_path, "r", encoding="utf-8") as sm_file:
-                    ai.system_memory = json.load(sm_file)
-                log(f"AI System Memory: {ai.system_memory}")
-                log(f"{len(ai.system_memory)} system messages.")
-                memory = [{**item, "content": item["content"].replace("\n", "")} for item in memory]  # clean the \n
-            memory_failed = 0
-            log("Memory consistency checks...")
-            fix_it = None
-            for i, entry in enumerate(memory):
-                try:
-                    assert "role" in entry
-                except AssertionError:
-                    log(f"Memory {i} missing 'role' field!")
-                    memory_failed += 1
-                try:
-                    assert "content" in entry
-                except AssertionError:
-                    log(f"Memory {i} missing 'content' field!")
-                    memory_failed += 1
-                try:
-                    assert "identity" in entry
-                except AssertionError:
-                    log(f"Memory {i} missing 'identity' field!")
-                    memory_failed += 1
-                try:
-                    assert "date" in entry
-                except AssertionError:
-                    log(f"Memory {i} missing 'date' field!")
-                    memory_failed += 1
-                try:
-                    if "content" in entry and "identity" in entry and "date" in entry:
-                        assert entry["identity"] == generate_hash(str(entry["content"]) + str(entry["date"]))
-                except AssertionError:
-                    log("Fingerprint mismatch for memory " + str(i))
-                    log("Expected: " + generate_hash(str(entry["content"]) + str(entry["date"])))
-                    log("Actual: " + entry["identity"])
-                    if fix_it is None:
-                        fix_it = handle_memory_failed()
-                    if fix_it:
-                        log("Updating...")
-                        memory[i]["identity"] = generate_hash(str(entry["content"]) + str(entry["date"]))
-                        log("Fingerprint: " + memory[i]["identity"])
-                    else:
-                        log("Failed memory ignored!")
-                    memory_failed += 1
-                try:
-                    assert "rating" in entry
-                except AssertionError:
-                    log(f"Memory {i} missing 'rating' field!")
-                    memory_failed += 1
-            log("Detected " + str(memory_failed) + " errors in memory!")
-            if fix_it is not None:
-                if not fix_it:
-                    log("Warning: Memory fingerprints NOT fixed, memory is inconsistent.")
+        with open(config_path, "r", encoding="utf-8") as file:  # Load in the  main personality file
+            data = json.load(file)
+            personality_definition = data[0]  # The first entry in this list of dictionaries is the personality_definition
+            memory = data[1:]  # The remaining entries constitute it"s memory
+            # Log the loaded personality details
+            log(f"Loading personality ({personality_definition['name']})...")
+            for key, value in personality_definition.items():
+                log(f"{key}: {value}")
+            log("---------------------------------------------------------")
+            # Load the system messages from the appropriate location
+            ai.system_memory = []
+            with open(system_message_path, "r", encoding="utf-8") as sm_file:
+                ai.system_memory = json.load(sm_file)
+            log(f"AI System Memory: {ai.system_memory}")
+            log(f"{len(ai.system_memory)} system messages.")
+            memory = [{**item, "content": item["content"].replace("\n", "")} for item in memory]  # clean the \n
+        memory_failed = 0
+        log("Memory consistency checks...")
+        fix_it = None
+        for i, entry in enumerate(memory):
+            try:
+                assert "role" in entry
+            except AssertionError:
+                log(f"Memory {i} missing 'role' field!")
+                memory_failed += 1
+            try:
+                assert "content" in entry
+            except AssertionError:
+                log(f"Memory {i} missing 'content' field!")
+                memory_failed += 1
+            try:
+                assert "identity" in entry
+            except AssertionError:
+                log(f"Memory {i} missing 'identity' field!")
+                memory_failed += 1
+            try:
+                assert "date" in entry
+            except AssertionError:
+                log(f"Memory {i} missing 'date' field!")
+                memory_failed += 1
+            try:
+                if "content" in entry and "identity" in entry and "date" in entry:
+                    assert entry["identity"] == generate_hash(str(entry["content"]) + str(entry["date"]))
+            except AssertionError:
+                log("Fingerprint mismatch for memory " + str(i))
+                log("Expected: " + generate_hash(str(entry["content"]) + str(entry["date"])))
+                log("Actual: " + entry["identity"])
+                if fix_it is None:
+                    fix_it = handle_memory_failed()
+                if fix_it:
+                    log("Updating...")
+                    memory[i]["identity"] = generate_hash(str(entry["content"]) + str(entry["date"]))
+                    log("Fingerprint: " + memory[i]["identity"])
                 else:
-                    log("Memory fingerprints updated!")
-            log("Memory checks complete.")
-            ai.personality_definition = personality_definition
-            ai.core_memory = memory
-            ai.personality_path = personality_path
-            ps.personality_status = "loaded"
-        elif ps.mode == "story":
-            with open(config_path, 'r', encoding='utf-8') as file:  # Load in the core memory
-                data = json.load(file)
-                personality_definition = data[0]  # The first entry in this list of dictionaries is the personality_definition
-                if len(data) > 1:
-                    status = data[1]  # The remaining entries constitute it's memory
-                    ai.system = status["system"]
-                    ai.plot = status["plot"]
-                    ai.characters = status["characters"]
-                    ai.style = status["style"]
-                    ai.summary = status["summary"]
-                    ai.length = status["length"]
-                    ai.starter = status["starter"]
-                    # Log the loaded personality details
-                    log(f"Loading personality ({personality_definition['name']})...")
-                    for key, value in personality_definition.items():
-                        log(f"{key}: {value}")
-                    log("---------------------------------------------------------")
-                ai.personality_definition = personality_definition
-                ai.personality_path = personality_path
-                ps.personality_status = "loaded"
+                    log("Failed memory ignored!")
+                memory_failed += 1
+            try:
+                assert "rating" in entry
+            except AssertionError:
+                log(f"Memory {i} missing 'rating' field!")
+                memory_failed += 1
+        log("Detected " + str(memory_failed) + " errors in memory!")
+        if fix_it is not None:
+            if not fix_it:
+                log("Warning: Memory fingerprints NOT fixed, memory is inconsistent.")
+            else:
+                log("Memory fingerprints updated!")
+        log("Memory checks complete.")
+        ai.personality_definition = personality_definition
+        ai.core_memory = memory
+        ai.personality_path = personality_path
+        ps.personality_status = "loaded"
     else:
         log("Personality configuration not found.")
         ps.personality_status = "unloaded"
@@ -1152,19 +982,14 @@ def main():
     # Clear the previous logfile if it exists
     if os.path.exists("./logfile.txt"):
         os.remove("./logfile.txt")
-    mode_selection_interface()
     ai = AI()  # The AI function returns either the "Chatter" or "Writer" objects depending on mode
-    if ps.mode == "chat":
-        # Initialize chat window UI.
-        window = create_chat_window()
-        # Load personality configuration and initialize core memory.
-        if args.personality is not None and os.path.exists(args.personality):
-            load_personality(args.personality)
-        elif ps.default_personality is not None and os.path.exists(ps.default_personality):
-            load_personality(ps.default_personality)
-    elif ps.mode == "story":
-        window = create_story_window()
-        load_personality("./resources/Blissful Writer.json")
+    # Initialize chat window UI.
+    window = create_chat_window()
+    # Load personality configuration and initialize core memory.
+    if args.personality is not None and os.path.exists(args.personality):
+        load_personality(args.personality)
+    elif ps.default_personality is not None and os.path.exists(ps.default_personality):
+        load_personality(ps.default_personality)
     # Display the conversation history
     update_main_window(window)
 
@@ -1256,16 +1081,6 @@ def main():
             ps.special = ""
             update_main_window(window)
 
-        # Update the values of the story writer
-        if ps.mode == "story":
-            ai.system = values['-SYSTEM-']
-            ai.characters = values['-CHARACTERS-']
-            ai.plot = values['-PLOT-']
-            ai.style = values['-STYLE-']
-            ai.summary = values['-SUMMARY-']
-            ai.length = values['-LENGTH-']
-            ai.starter = values['-STARTER-']
-
         # Retrieve the model or response if it's sitting in queue
         if not model_queue.empty():
             llm.model, llm.tokenizer, llm.streamer = model_queue.get()
@@ -1273,11 +1088,8 @@ def main():
             window["-NOTICE-"].update("")  # Clear the loading notice
 
         if not model_response.empty():
-            output = model_response.get()
-            if ps.mode == "chat":
-                update_main_window(window)
-            elif ps.mode == "story":
-                display_message(window, None, f"{ai.starter}{output}", None, "black")
+            _ = model_response.get()
+            update_main_window(window)
             window["-NOTICE-"].update("")  # Clear the typing message.
             ps.model_status = "ready"
 
@@ -1324,12 +1136,13 @@ def main():
                     threading.Thread(target=load_model, args=(selected_folder, model_queue), daemon=True).start()
                     llm.model_path = selected_folder
         elif event == "Create Personality":
+            old_personality = None
             if ps.personality_status == "loaded":
                 log("Saving current personality...")
                 update_hard_memory()
                 old_personality = ai.personality_path
                 ai.reset()
-            if not handle_create_event():
+            if not handle_create_event() and old_personality is not None:
                 load_personality(old_personality)
             update_main_window(window)
         elif event == "Load Personality":
@@ -1352,7 +1165,7 @@ def main():
             else:
                 popup_message("Can't change settings while the model is loading or busy!")
         # Allows editing of the personality_defitinion and system messages
-        elif event in ["Edit Personality", "Edit Writer"]:
+        elif event == "Edit Personality":
             if ps.model_status != "inferencing":
                 if ps.personality_status == "loaded":
                     update_hard_memory()
@@ -1367,21 +1180,6 @@ def main():
             handle_about_event()
         elif event in ["Copy", "Copy ", "Cut", "Paste"]:
             handle_ccp(event, window)
-        elif event == "Write!":
-            if ps.model_status == "ready":
-                ai.system = values['-SYSTEM-']
-                ai.characters = values['-CHARACTERS-']
-                ai.plot = values['-PLOT-']
-                ai.style = values['-STYLE-']
-                ai.summary = values['-SUMMARY-']
-                ai.length = values['-LENGTH-']
-                ai.starter = values['-STARTER-']
-                threading.Thread(target=threaded_story_response, args=(llm, model_response), daemon=True).start()
-            elif ps.model_status in ["inferencing", "loading"]:
-                # Show a popup if the model is busy, loading, or not yet loaded.
-                popup_message(f"The model is currently {ps.model_status}. Please wait before sending messages.")
-            elif ps.model_status == "unloaded":
-                popup_message("Please load a model first!")
         if update_window.is_set():
             update_main_window(window)
             update_window.clear()

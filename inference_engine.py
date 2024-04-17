@@ -143,22 +143,6 @@ def threaded_model_response(llm, user_message, model_response, update_window):
         model_response.put(response)
 
 
-@timed_execution
-def threaded_story_response(llm, model_response):
-    """
-    This function is called via a thread and handles running the story inference
-
-    Parameters:
-        - llm: The llm we are working with
-        - model_response: a Queue to put the output in
-
-    """
-    with torch.inference_mode():
-        # Run the language model
-        response = generate_model_response(llm)
-        model_response.put(response)
-
-
 def custom_template(llm):
     """
     Function to apply a custom template based on the program settings.
@@ -166,91 +150,62 @@ def custom_template(llm):
     ai = AI()
     ps = ProgramSettings()
     cprompt = ""
-
-    if ps.mode == "story":
-        cprompt += "|<im_start>|system\n"
-        cprompt += ai.system
-        if ai.plot is not None and ai.plot != "":
-            cprompt += "\n\n"
-            cprompt += "## Overall plot description:\n\n"
-            cprompt += ai.plot
-        if ai.style is not None and ai.style != "":
-            cprompt += "\n\n"
-            cprompt += "## Style description:\n\n"
-            cprompt += ai.style
-        if ai.characters is not None and ai.characters != "":
-            cprompt += "\n\n"
-            cprompt += "## Characters:\n\n"
-            cprompt += ai.characters
-        if ai.summary is not None and ai.summary != "":
-            cprompt += "\n\n"
-            cprompt += "## Summary of previous chapters:\n\n"
-            cprompt += ai.summary
-            log(cprompt)
-        cprompt += "<|im_end|>\n"
-        cprompt += "<|im_start|>user\n"
-        cprompt += f"Length: {ai.length} words\nWrite the story based on the above information<|im_end|>\n"
-        cprompt += "<|im_start|>text\n"
-        if ai.starter is not None and ai.starter != "":
-            cprompt += ai.starter
-        cprompt += "\u200b"
-    elif ps.mode == "chat":
-        prompt = ai.working_memory
-        if ps.auto_template is True:
-            template = auto_detect_template(llm)
-        else:
-            template = ps.template
-        if template == "HF Automatic":  # Use HF transformers build in apply_chat_template, doesn't always detect things properly
-            cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
-        elif template == "BAI Opus":
-            for entry in ai.working_memory:
-                if entry["role"] == "user":
-                    cprompt += f"<|im_start|>text names= {ps.username}\n"
-                    cprompt += entry["content"]
-                    cprompt += "<|im_end|>\n"
-                elif entry["role"] == "assistant":
-                    cprompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
-                    cprompt += entry["content"]
-                    cprompt += "<|im_end|>\n"
-                elif entry["role"] == "system":
-                    cprompt += "<|im_start>|>system\n"
-                    cprompt += entry["content"]
-                    cprompt += "<|im_end|>\n"
-            cprompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
-        elif template == "BAI SynthIA":
-            for entry in prompt:
-                cprompt += entry["role"].upper() + ":\n"
-                cprompt += entry["content"] + "\n"
-            cprompt += "ASSISTANT:\n"
-        elif template == "BAI Instruct":
-            for entry in ai.system_memory:
-                cprompt += "[INST] "
+    prompt = ai.working_memory
+    if ps.auto_template is True:
+        template = auto_detect_template(llm)
+    else:
+        template = ps.template
+    if template == "HF Automatic":  # Use HF transformers build in apply_chat_template, doesn't always detect things properly
+        cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
+    elif template == "BAI Opus":
+        for entry in ai.working_memory:
+            if entry["role"] == "user":
+                cprompt += f"<|im_start|>text names= {ps.username}\n"
                 cprompt += entry["content"]
-                cprompt += "[/INST]\n"
-            for entry in ai.working_memory:
-                if entry["role"] == "user":
-                    cprompt += "[INST] " + entry["content"] + "[/INST]"
-                if entry["role"] == "assistant":
-                    cprompt += entry["content"] + "\n"
-        elif template == "BAI Zephyr":
-            for entry in prompt:
-                cprompt += "<|" + entry["role"] + "|>\n"
+                cprompt += "<|im_end|>\n"
+            elif entry["role"] == "assistant":
+                cprompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
+                cprompt += entry["content"]
+                cprompt += "<|im_end|>\n"
+            elif entry["role"] == "system":
+                cprompt += "<|im_start>|>system\n"
+                cprompt += entry["content"]
+                cprompt += "<|im_end|>\n"
+        cprompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
+    elif template == "BAI SynthIA":
+        for entry in prompt:
+            cprompt += entry["role"].upper() + ":\n"
+            cprompt += entry["content"] + "\n"
+        cprompt += "ASSISTANT:\n"
+    elif template == "BAI Instruct":
+        for entry in ai.system_memory:
+            cprompt += "[INST] "
+            cprompt += entry["content"]
+            cprompt += "[/INST]\n"
+        for entry in ai.working_memory:
+            if entry["role"] == "user":
+                cprompt += "[INST] " + entry["content"] + "[/INST]"
+            if entry["role"] == "assistant":
                 cprompt += entry["content"] + "\n"
-            cprompt += "<|assistant|>"
-        elif template == "BAI Alpaca":
-            cprompt += "### Instruction: \n"
-            for entry in ai.system_memory:
+    elif template == "BAI Zephyr":
+        for entry in prompt:
+            cprompt += "<|" + entry["role"] + "|>\n"
+            cprompt += entry["content"] + "\n"
+        cprompt += "<|assistant|>"
+    elif template == "BAI Alpaca":
+        cprompt += "### Instruction: \n"
+        for entry in ai.system_memory:
+            cprompt += entry["content"] + "\n"
+        cprompt += "### Input: \n"
+        for entry in ai.working_memory:
+            if entry["role"] == "user" and entry["content"] != "":
+                cprompt += f"{ps.username}: "
                 cprompt += entry["content"] + "\n"
-            cprompt += "### Input: \n"
-            for entry in ai.working_memory:
-                if entry["role"] == "user" and entry["content"] != "":
-                    cprompt += f"{ps.username}: "
-                    cprompt += entry["content"] + "\n"
-                if entry["role"] == "assistant":
-                    cprompt += ai.personality_definition["name"] + ": "
-                    cprompt += entry["content"] + "\n"
-            cprompt += "### Response: \n"
-        cprompt += "\u200b"  # Mark the response with zero width space, shouldn't confuse the model nor be produced by the model
+            if entry["role"] == "assistant":
+                cprompt += ai.personality_definition["name"] + ": "
+                cprompt += entry["content"] + "\n"
+        cprompt += "### Response: \n"
+    cprompt += "\u200b"  # Mark the response with zero width space, shouldn't confuse the model nor be produced by the model
     log(f"Templated prompt: {cprompt}")
     return cprompt
 
@@ -287,7 +242,7 @@ def generate_model_response(llm):
     log("Running primary model...")
     with torch.inference_mode():
         with autocast():
-            outputs = llm.model.generate(prompt, max_new_tokens=ai.personality_definition["response_length"] if ps.mode == "chat" else 2.5 * int(ai.length),
+            outputs = llm.model.generate(prompt, max_new_tokens=ai.personality_definition["response_length"],
                                          streamer=llm.streamer if ps.do_stream and (ai.personality_definition["num_beams"] == 1) else None,
                                          do_sample=any([ai.personality_definition["temperature_enable"], ai.personality_definition["top_k_enable"], ai.personality_definition["top_p_enable"],
                                                         ai.personality_definition["typical_p_enable"], ai.personality_definition["repetition_penalty_enable"], ai.personality_definition["length_penalty_enable"]]),
@@ -306,7 +261,7 @@ def generate_model_response(llm):
         if ps.backend in ["auto", "cuda"]:
             torch.cuda.empty_cache()
     gc.collect()
-    feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=False) if ps.mode == "chat" else llm.tokenizer.decode(outputs[0], skip_special_tokens=True)
+    feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=False)
     return post_process(feedback, llm)
 
 
@@ -446,80 +401,74 @@ def post_process(input_string, llm):
     """
     if len(input_string) > 0:
         ps = ProgramSettings()
-        if ps.mode == "chat":
-            punctuation_set = {"!", ".", "?", "*", ")"}
-            if ps.auto_template is True:
-                template = auto_detect_template(llm)
-            else:
-                template = ps.template
-            template_guess = None
-            if template == "HF Automatic":
-                if input_string.find("<|im_end|>") != -1:
-                    template_guess = "Opus"
-                elif input_string.find("<|assistant|>") != -1:
-                    template_guess = "Zephyr"
-                elif input_string.find("[INST]") != -1:
-                    template_guess = "Instruct"
-                elif input_string.find("\nUSER:") != -1:
-                    template_guess = "Synthia"
+        punctuation_set = {"!", ".", "?", "*", ")"}
+        if ps.auto_template is True:
+            template = auto_detect_template(llm)
+        else:
+            template = ps.template
+        template_guess = None
+        if template == "HF Automatic":
+            if input_string.find("<|im_end|>") != -1:
+                template_guess = "Opus"
+            elif input_string.find("<|assistant|>") != -1:
+                template_guess = "Zephyr"
+            elif input_string.find("[INST]") != -1:
+                template_guess = "Instruct"
+            elif input_string.find("\nUSER:") != -1:
+                template_guess = "Synthia"
 
-                log(f"Best guess template: {template_guess}")
+            log(f"Best guess template: {template_guess}")
 
-            if template == "BAI SynthIA" or template_guess == "Synthia":
-                end_tag = "\nUSER:"
-            elif template == "BAI Zephyr" or template_guess == "Zephyr":
-                end_tag = "<|user|>"
-            elif template == "BAI Opus" or template_guess == "Opus":
-                end_tag = "<|im_end|>"
-            elif template == "BAI Instruct" or template_guess == "Instruct":
-                end_tag = "[end of transmission]"
-            else:
-                end_tag = "</s>"
-            response_start = input_string.rfind("\u200b") + 1
+        if template == "BAI SynthIA" or template_guess == "Synthia":
+            end_tags = ["\nUSER:"]
+        elif template == "BAI Zephyr" or template_guess == "Zephyr":
+            end_tags = ["<|user|>", "<|assistant|>", "<|system|>"]
+        elif template == "BAI Opus" or template_guess == "Opus":
+            end_tags = ["<|im_end|>"]
+        elif template == "BAI Instruct" or template_guess == "Instruct":
+            end_tags = ["[end of transmission]"]
+        else:
+            end_tag = ["</s>"]
+        response_start = input_string.rfind("\u200b") + 1
 
-            if response_start != -1:
-                response = input_string[response_start:].lstrip("\n \u200b")
-            else:
-                response = input_string
+        if response_start != -1:
             response = input_string[response_start:].lstrip("\n \u200b")
-            if template == "BAI Zephyr" or template_guess == "Zephyr":  # Not sure if this is necessary?
-                if response.startswith("<|assistant|>"):
-                    response = response[13:]
-            elif template == "BAI Opus" or template_guess == "Opus":
-                if response.startswith("<|im_start|>"):
-                    response = response[12:]
+        else:
+            response = input_string
+        response = input_string[response_start:].lstrip("\n \u200b")
+        if template == "BAI Zephyr" or template_guess == "Zephyr":  # Not sure if this is necessary?
+            if response.startswith("<|assistant|>"):
+                response = response[13:]
+        elif template == "BAI Opus" or template_guess == "Opus":
+            if response.startswith("<|im_start|>"):
+                response = response[12:]
+        for end_tag in end_tags:
             tag_index = response.find(end_tag)
             if tag_index != -1:
                 response = response[:tag_index]
-            else:
-                code = is_likely_code(response)
-                log(f"Is likely code: {code}")
-                if not code:
-                    if len(response) != 0 and response[-1] not in punctuation_set:
-                        last_punctuation_index = next((i for i, char in enumerate(
-                            reversed(response)) if char in punctuation_set), None)
-                        if last_punctuation_index is not None:
-                            result_string = response[:-last_punctuation_index].rstrip()
-                            response = result_string
-                        response = response.strip()
-                    if len(response) != 0 and response[-1] == "*":
-                        # Last character is * so check the number of asterisks so we don't leave a dangling one
-                        if response.count("*") % 2 != 0:
-                            response = response[:-1]
-                            response = response.rstrip()
-                    elif response.count("*") % 2 != 0:
-                        response += "*"  # If the model didn't close it's roleplay, close it for her.
-                    response = response.replace("\n", "")
-                else:
-                    # we need to find the last ``` and make sure truncation occurs after that
-                    pass
-            response = response.strip()
-        elif ps.mode == "story":
-            response_start = input_string.rfind("\u200b") + 1
-            if response_start != -1:
-                response = input_string[response_start:].lstrip("\n \u200b")
-            else:
-                response = input_string
+                break
+        code = is_likely_code(response)
+        log(f"Is likely code: {code}")
+        if not code:
+            if len(response) != 0 and response[-1] not in punctuation_set:
+                last_punctuation_index = next((i for i, char in enumerate(
+                    reversed(response)) if char in punctuation_set), None)
+                if last_punctuation_index is not None:
+                    result_string = response[:-last_punctuation_index].rstrip()
+                    response = result_string
+                response = response.strip()
+            if len(response) != 0 and response[-1] == "*":
+                # Last character is * so check the number of asterisks so we don't leave a dangling one
+                if response.count("*") % 2 != 0:
+                    response = response[:-1]
+                    response = response.rstrip()
+            elif response.count("*") % 2 != 0:
+                response += "*"  # If the model didn't close it's roleplay, close it for her.
+            response = response.replace("\n", "")
+        else:
+            # we need to find the last ``` and make sure truncation occurs after that
+            pass
+        response = response.strip()
     else:
         log("Response was blank")
         response = ""
