@@ -1,7 +1,7 @@
 # BlissfulAI  <img src="resources/baiabout.png" alt="BlissfulAI" width="64" height="64"/>
 
 
-Welcome to **BlissfulAI**, a work in progress chatbot/story writing front end for LLMs. Note the story writing part is not yet released into the repository, but soon!
+Welcome to **BlissfulAI**, a work in progress chatbot front end for LLMs.
 
 <p align="center">
   <img src="resources/britney2.png" alt="Example interaction"/>
@@ -9,12 +9,10 @@ Welcome to **BlissfulAI**, a work in progress chatbot/story writing front end fo
 
 ## Features
 
-- Character driven interactive chat driven by large language models + guided uncensored creative story writing in one purple python package!
+- Character driven interactive chat driven by large language models
 - Create customized characters and then interact with them! Any character you like! They can be your friend, your mentor, your lover, your advisor, and so much more!
 - Characters develop from their interactions with you!
 - Characters use a working memory system: a context sensitive combination of recent conversation(short term memory) and past conversations(long term memory).
-- Storywriting mode allows you to specify an "author personality", plot outline, character descriptions, writing style, summary of previous events and more!
-- Write the fanfic of your dreams! Rewrite the ending to {insert copyrighted work here} - but don't distribute it! Write an epic three part series about your dog! Your imagination is the limit.
 - Fully customizable, adaptable to different hardware configurations. Low VRAM? Limp by with a quantized 3 billion parameter model. Max VRAM? Run giant models that the rest of us can only dream about!
 - Live help system and solid default settings so you can jump right in!
 - Voices, personality traits, character avatars and more are planned for the future!
@@ -42,7 +40,7 @@ To get started with **BlissfulAI**, the first thing you need to do is download i
 
 Now you're gonna need a model to work with. For best results I recommend at least a 7B model. Some good suggestions:
 
-- [Opus 1.2 7B](https://huggingface.co/dreamgen/opus-v1.2-7b) - Highly recommended! An uncensored, 7 billion parameter model for roleplaying and creative writing. Use with the "BAI Opus" template. This is THE model for storywriting. 
+- [Opus 1.2 7B](https://huggingface.co/dreamgen/opus-v1.2-7b) - Highly recommended! An uncensored, 7 billion parameter model for roleplaying and creative writing. Use with the "BAI Opus" template. 
 - [OpenZephyrChat 7B](https://huggingface.co/Fredithefish/OpenZephyrChat-v0.2) - A 7 billion parameter model mainly used for chatting, a merge between OpenChat and Zephyr. Use with the "BAI Zephyr" template.
 - [Zephyr 7B β](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta) - A 7 billion paramter model trained with DPO for good instruction following. Use with the "BAI Zephyr" or "HF Automatic" template. Great for question answering tasks.
 - [StableLM Zephyr 3B](https://huggingface.co/stabilityai/stablelm-zephyr-3b) - A pretty decent 3 billion parameter instruction following model. Recommended if VRAM is a concern, otherwise use a 7B model. Use with "BAI Zephyr" or "HF Automatic" template.
