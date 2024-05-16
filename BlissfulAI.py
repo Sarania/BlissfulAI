@@ -308,7 +308,7 @@ def handle_edit_event():
                 expected_type = type(value)
                 ai.personality_definition[key] = expected_type(values[key])
             log("Personality_defition updated.")
-            # Split the text area content into lines, each representing a message"s content
+            # Split the text area content into lines, each representing a message's content
             edited_contents = values["messages_editor"].split("\n")
             # Update system_messages with the new contents
             system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
@@ -353,7 +353,7 @@ def handle_create_event():
                     expected_type = type(value)
                     ai.personality_definition[key] = expected_type(values[key])
                 log("Personality_defition updated.")
-                # Split the text area content into lines, each representing a message"s content
+                # Split the text area content into lines, each representing a message's content
                 edited_contents = values["messages_editor"].split("\n")
                 # Update system_messages with the new contents
                 system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]

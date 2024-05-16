@@ -401,7 +401,7 @@ def post_process(input_string, llm):
     """
     if len(input_string) > 0:
         ps = ProgramSettings()
-        punctuation_set = {"!", ".", "?", "*", ")"}
+        punctuation_set = {"!", ".", "?", "*", ")", '"'}
         if ps.auto_template is True:
             template = auto_detect_template(llm)
         else:
@@ -422,7 +422,7 @@ def post_process(input_string, llm):
         if template == "BAI SynthIA" or template_guess == "Synthia":
             end_tags = ["\nUSER:"]
         elif template == "BAI Zephyr" or template_guess == "Zephyr":
-            end_tags = ["<|user|>", "<|assistant|>", "<|system|>"]
+            end_tags = ["<|user|>", "<|system|>", "<|assistant|>"]
         elif template == "BAI Opus" or template_guess == "Opus":
             end_tags = ["<|im_end|>"]
         elif template == "BAI Instruct" or template_guess == "Instruct":
@@ -446,7 +446,6 @@ def post_process(input_string, llm):
             tag_index = response.find(end_tag)
             if tag_index != -1:
                 response = response[:tag_index]
-                break
         code = is_likely_code(response)
         log(f"Is likely code: {code}")
         if not code:
