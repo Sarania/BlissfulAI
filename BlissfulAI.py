@@ -23,6 +23,7 @@ Created on Mon Mar 4 12:00:00 2024
 @author: Blyss Sarania
 """
 import signal
+import io
 import os
 import sys
 import gc
@@ -36,6 +37,7 @@ from datetime import datetime
 from queue import Queue
 import webbrowser
 import PySimpleGUI as sg
+from PIL import Image
 from inference_engine import threaded_model_response, load_model
 from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, nvidia
 from singletons import AI, ProgramSettings
@@ -525,7 +527,6 @@ def create_edit_window():
 
         window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
     ai = AI()
-    ps = ProgramSettings()
     # Define the maximum label width for uniformity
     label_width = 20
     string_width = 16
@@ -829,9 +830,14 @@ def create_chat_window():
     width, height = 1000, 500
     c_right_click_menu = ["", ["Copy "]]
     ccp_right_click_menu = ["", ["Copy", "Cut", "Paste"]]
-
+    avatar_path = "./resources/bai_icon_full_res.png"
+    avatar = Image.open(avatar_path)
+    avatar.thumbnail((256, 256), Image.LANCZOS)
+    bio = io.BytesIO()
+    avatar.save(bio, format="PNG")
+    image_data = bio.getvalue()
     layout = [
-        [sg.Multiline(size=(60, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
+        [sg.Image(data=image_data, key="-IMAGE-"), sg.Multiline(size=(40, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
         [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True), sg.Button("Guidance"), sg.Button("Load Model"), sg.Button("Create Personality"), sg.Button("Load Personality"), sg.Button("Edit Personality"), sg.Button("Settings")],
         [sg.Multiline(key="-INPUT-", size=(40, 3), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
         [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About")],
@@ -866,13 +872,14 @@ def enforce_minimum_size(window, min_width, min_height):
 
 
 @timed_execution
-def load_personality(personality_path):
+def load_personality(personality_path, window):
     """
     Function to load a specified AI and its memory into the system,
     along with making a backup of the personality configuration.
 
     Parameters:
     - personality_path: The path to the personality folder, a string
+    - window: Handle to the PSG window for updating avatar
 
     """
     ai = AI()
@@ -957,6 +964,16 @@ def load_personality(personality_path):
         ai.personality_definition = personality_definition
         ai.core_memory = memory
         ai.personality_path = personality_path
+        avatar_path = os.path.join(personality_path, "default.png")
+        if os.path.exists(avatar_path):
+            avatar = Image.open(avatar_path)
+        else:
+            avatar = Image.open("./resources/bai_icon_full_res.png")
+        avatar.thumbnail((256, 256), Image.LANCZOS)
+        bio = io.BytesIO()
+        avatar.save(bio, format="PNG")
+        image_data = bio.getvalue()
+        window["-IMAGE-"].update(image_data)
         ps.personality_status = "loaded"
     else:
         log("Personality configuration not found.")
@@ -987,9 +1004,9 @@ def main():
     window = create_chat_window()
     # Load personality configuration and initialize core memory.
     if args.personality is not None and os.path.exists(args.personality):
-        load_personality(args.personality)
+        load_personality(args.personality, window)
     elif ps.default_personality is not None and os.path.exists(ps.default_personality):
-        load_personality(ps.default_personality)
+        load_personality(ps.default_personality, window)
     # Display the conversation history
     update_main_window(window)
 
@@ -1143,7 +1160,7 @@ def main():
                 old_personality = ai.personality_path
                 ai.reset()
             if not handle_create_event() and old_personality is not None:
-                load_personality(old_personality)
+                load_personality(old_personality, window)
             update_main_window(window)
         elif event == "Load Personality":
             if ps.model_status != "inferencing":
@@ -1155,7 +1172,7 @@ def main():
                 if selected_folder == "":
                     log("No personality selected!")
                 else:
-                    load_personality(selected_folder)
+                    load_personality(selected_folder, window)
                     update_main_window(window)
             else:
                 popup_message("Cannot reload personality while the model is inferencing!")
@@ -1170,7 +1187,7 @@ def main():
                 if ps.personality_status == "loaded":
                     update_hard_memory()
                     if handle_edit_event():
-                        load_personality(ai.personality_path)
+                        load_personality(ai.personality_path, window)
                         update_main_window(window)
                 else:
                     popup_message("No personality loaded to edit!")
