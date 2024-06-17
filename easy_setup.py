@@ -14,29 +14,35 @@ except ImportError:
     sys.exit(1)
 
 
-def create_setup_window():
+def create_setup_window(os_type):
     """
     Function for creating the window to edit the programs settings
     """
     sg.theme("Purple")
     ps = ProgramSettings()
     label_width = 20
-    cuda_options = ["12.1", "11.8", "None"]
+    if os_type == "Windows":
+        cuda_options = ["CUDA 12.1", "CUDA 11.8", "CPU"]
+        help_text = "Torch Version Help: If you have an Nvidia GPU equal to or newer than GTX 9xx, select one of the CUDA options.\nIf you don't then select CPU but note that inference will be SLOW."
+    elif os_type == "Linux":
+        cuda_options = ["CUDA 12.1", "CUDA 11.8", "ROCm 6.0", "ROCm 5.7", "CPU"]
+        help_text = "Torch Version Help: If you have an Nvidia GPU equal to or newer than GTX 9xx, select one of the CUDA options.\nIf you have an AMD GPU equal to or newer than RX 6XXX, select one of the ROCm options.\nIf you have neither then select CPU but note that inference will be SLOW."
     layout = [
         [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username")],
-        [sg.Text("CUDA Version:", size=(label_width, 1)), sg.Combo(cuda_options, default_value="None", key="cuda", readonly=True)],
-        [sg.Button("Save"), sg.Button("Cancel")]
+        [sg.Text("Torch Version:", size=(label_width, 1)), sg.Combo(cuda_options, default_value="CPU", key="cuda", readonly=True)],
+        [sg.Button("Save"), sg.Button("Cancel")],
+        [sg.Text(help_text, text_color="green")]
     ]
     window = sg.Window("BAI Easy setup", layout, modal=True, icon="./resources/bai.ico")
     return window
 
 
-def handle_setup_event():
+def handle_setup_event(os_type):
     """
     Function for handling the settings event
     """
     ps = ProgramSettings()
-    settings_window = create_setup_window()
+    settings_window = create_setup_window(os_type)
 
     while True:
         event, values = settings_window.read(timeout=50)
@@ -52,19 +58,18 @@ def handle_setup_event():
 
 def main():
     """Main function for downloading models"""
-    cuda_version = handle_setup_event()
+    os_type = platform.system()
+    cuda_version = handle_setup_event(os_type)
     cuda_to_torch = {
-        "12.1": "pip install torch --index-url https://download.pytorch.org/whl/cu121",
-        "11.8": "pip install torch --index-url https://download.pytorch.org/whl/cu118"
+        "CUDA 12.1": "pip install torch --index-url https://download.pytorch.org/whl/cu121",
+        "CUDA 11.8": "pip install torch --index-url https://download.pytorch.org/whl/cu118",
+        "ROCm 6.0": "pip install torch --index-url https://download.pytorch.org/whl/rocm6.0",
+        "ROCm 5.7": "pip install torch --index-url https://download.pytorch.org/whl/rocm5.7"
     }
 
-    if cuda_version in cuda_to_torch:
-        command = cuda_to_torch[cuda_version]
-    else:
-        command = "pip install torch"
+    command = cuda_to_torch.get(cuda_version, "pip install torch")
     print("Installing selected PyTorch version...")
 
-    os_type = platform.system()
     if os_type == "Linux":
         # For Linux, write a bash script
         script_name = 'install_torch.sh'

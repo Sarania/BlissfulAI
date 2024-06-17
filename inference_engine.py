@@ -220,9 +220,8 @@ def generate_model_response(llm):
     ai = AI()
     ps = ProgramSettings()
     # Clean up the context before inference
-    if nvidia():
-        if ps.backend in ["auto", "cuda"]:
-            torch.cuda.empty_cache()
+    if ps.backend in ["auto", "cuda"]:
+        torch.cuda.empty_cache()
     gc.collect()
     cprompt = custom_template(llm)
     log("Tokenizing...")
@@ -257,9 +256,8 @@ def generate_model_response(llm):
     # Clean up the context after inference
     prompt = None
     del prompt
-    if nvidia():
-        if ps.backend in ["auto", "cuda"]:
-            torch.cuda.empty_cache()
+    if ps.backend in ["auto", "cuda"]:
+        torch.cuda.empty_cache()
     gc.collect()
     feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=False)
     return post_process(feedback, llm)

@@ -577,7 +577,7 @@ def create_settings_window():
     def update_help(window, evname):
         explanations = {
             "username": "(Username) - What you wanna be called. Used in the chat log and certain templates.",
-            "backend": "(Backend) - The backend to run inferences on. 'auto' is generally better than 'cuda' for CUDA.",
+            "backend": "(Backend) - The backend to run inferences on. 'auto' is best in most cases.",
             "quant": "(Model Quantization) - The quantization to load the model with. Saves VRAM at a slight cost to accuracy.",
             "template": "(Model Template) - The template for formatting the model's input.",
             "default_model_path": "(Default Model) - The model to load on startup.",
@@ -591,7 +591,7 @@ def create_settings_window():
     ps = ProgramSettings()
     label_width = 20
     string_width = 36
-    backend_options = ["cuda", "cpu", "auto"] if nvidia() is True else ["cpu", "auto"]
+    backend_options = ["cuda", "cpu", "auto"]
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
     template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
@@ -1064,9 +1064,8 @@ def main():
             llm.model = None
             llm.tokenizer = None
             gc.collect()
-            if nvidia():
-                if ps.backend in ["auto", "cuda"]:
-                    torch.cuda.empty_cache()
+            if ps.backend in ["auto", "cuda"]:
+                torch.cuda.empty_cache()
             ps.model_status = "loading"
             threading.Thread(target=load_model, args=(llm.model_path, model_queue), daemon=True).start()
 
@@ -1135,9 +1134,8 @@ def main():
                 llm.model = None
                 llm.tokenizer = None
                 gc.collect()
-                if nvidia():
-                    if ps.backend in ["auto", "cuda"]:
-                        torch.cuda.empty_cache()
+                if ps.backend in ["auto", "cuda"]:
+                    torch.cuda.empty_cache()
             elif ps.model_status in ["inferencing", "loading"]:
                 # Show a popup if the model is busy or loading.
                 popup_message("The model is currently busy or loading.")
