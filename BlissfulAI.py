@@ -39,7 +39,7 @@ import webbrowser
 import PySimpleGUI as sg
 from PIL import Image
 from inference_engine import threaded_model_response, load_model
-from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, nvidia
+from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version
 from singletons import AI, ProgramSettings
 import torch
 if sys.platform == "win32":
@@ -682,7 +682,7 @@ def create_guidance_message():
     def update_display():
         current_messages = ""
         for i, entry in enumerate(ai.guidance_messages):
-            current_messages += f"{i+1}: {entry['content']}; Turns remaining: {entry['turns']}\n"
+            current_messages += f"{i + 1}: {entry['content']}; Turns remaining: {entry['turns']}\n"
         guidance_window["CURMSG"].update(current_messages)
 
     def handle_right_click(tk_event):

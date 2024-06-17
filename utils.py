@@ -24,7 +24,7 @@ def get_os_name_and_version():
     os_name = platform.system()
     if os_name == "Windows":
         os_version = platform.version()
-        major, middle, minor = os_version.split(".")
+        major, _, minor = os_version.split(".")
         if int(minor) > 22000:
             major = "11"
         os_version = f"{major} Build {minor}"
