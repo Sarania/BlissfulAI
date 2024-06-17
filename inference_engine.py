@@ -156,7 +156,7 @@ def custom_template(llm):
     else:
         template = ps.template
     if template == "HF Automatic":  # Use HF transformers build in apply_chat_template, doesn't always detect things properly
-        cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False)
+        cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
     elif template == "BAI Opus":
         for entry in ai.working_memory:
             if entry["role"] == "user":
@@ -166,7 +166,7 @@ def custom_template(llm):
             elif entry["role"] == "assistant":
                 cprompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
                 cprompt += entry["content"]
-                cprompt += "<|im_end|>\n"
+                cprompt += "<|im_end|>\n "
             elif entry["role"] == "system":
                 cprompt += "<|im_start>|>system\n"
                 cprompt += entry["content"]
@@ -205,7 +205,6 @@ def custom_template(llm):
                 cprompt += ai.personality_definition["name"] + ": "
                 cprompt += entry["content"] + "\n"
         cprompt += "### Response: \n"
-    cprompt += "\u200b"  # Mark the response with zero width space, shouldn't confuse the model nor be produced by the model
     log(f"Templated prompt: {cprompt}")
     return cprompt
 
@@ -225,6 +224,9 @@ def generate_model_response(llm):
     gc.collect()
     cprompt = custom_template(llm)
     log("Tokenizing...")
+    prompt_encoded = llm.tokenizer.encode(cprompt)  # This extra tokenization and decode step is necessary to keep track of where the model's response actually starts after tokens are munged by the tokenizer.
+    prompt_decoded = llm.tokenizer.decode(prompt_encoded, skip_special_tokens=False)
+    response_start = len(prompt_decoded)
     if ps.backend in ("cuda", "auto"):
         log("Prompt to cuda...")
         prompt = llm.tokenizer.encode(cprompt, return_tensors="pt").to("cuda")
@@ -234,6 +236,7 @@ def generate_model_response(llm):
     else:
         log(f"Prompt to {ps.backend}...")
         prompt = llm.tokenizer.encode(cprompt, return_tensors="pt").to("device")
+
     if any([ai.personality_definition["temperature_enable"], ai.personality_definition["top_k_enable"], ai.personality_definition["top_p_enable"], ai.personality_definition["typical_p_enable"], ai.personality_definition["repetition_penalty_enable"], ai.personality_definition["length_penalty_enable"]]):
         log("Using sampling...")
     else:
@@ -260,7 +263,7 @@ def generate_model_response(llm):
         torch.cuda.empty_cache()
     gc.collect()
     feedback = llm.tokenizer.decode(outputs[0], skip_special_tokens=False)
-    return post_process(feedback, llm)
+    return post_process(feedback, llm, response_start)
 
 
 @timed_execution
@@ -385,7 +388,7 @@ def extract_keywords(sentence, personality_definition):
     return keywords
 
 
-def post_process(input_string, llm):
+def post_process(input_string, llm, response_start):
     """
     Post processes the model output to prepare it for the user
 
@@ -404,46 +407,44 @@ def post_process(input_string, llm):
             template = auto_detect_template(llm)
         else:
             template = ps.template
-        template_guess = None
+        end_tags = ["</s>"]
         if template == "HF Automatic":
             if input_string.find("<|im_end|>") != -1:
-                template_guess = "Opus"
+                applied_template = "Opus"
+                end_tags = ["<|im_end|>"]
             elif input_string.find("<|assistant|>") != -1:
-                template_guess = "Zephyr"
+                applied_template = "Zephyr"
+                end_tags = ["<|user|>", "<|system|>"]
             elif input_string.find("[INST]") != -1:
-                template_guess = "Instruct"
+                applied_template = "Instruct"
+                end_tags = ["[end of transmission]"]
             elif input_string.find("\nUSER:") != -1:
-                template_guess = "Synthia"
-
-            log(f"Best guess template: {template_guess}")
-
-        if template == "BAI SynthIA" or template_guess == "Synthia":
-            end_tags = ["\nUSER:"]
-        elif template == "BAI Zephyr" or template_guess == "Zephyr":
-            end_tags = ["<|user|>", "<|system|>", "<|assistant|>"]
-        elif template == "BAI Opus" or template_guess == "Opus":
-            end_tags = ["<|im_end|>"]
-        elif template == "BAI Instruct" or template_guess == "Instruct":
-            end_tags = ["[end of transmission]"]
+                applied_template = "Synthia"
+                end_tags = ["\nUSER:"]
+            log(f"Best guess template: {applied_template}")
         else:
-            end_tag = ["</s>"]
-        response_start = input_string.rfind("\u200b") + 1
+            if template == "BAI SynthIA":
+                applied_template = "Synthia"
+                end_tags = ["\nUSER:"]
+            elif template == "BAI Zephyr":
+                applied_template = "Zephyr"
+                end_tags = ["<|user|>", "<|system|>"]
+            elif template == "BAI Opus":
+                applied_template = "Opus"
+                end_tags = ["<|im_end|>"]
+            elif template == "BAI Instruct":
+                applied_template = "Instruct"
+                end_tags = ["[end of transmission]"]
 
-        if response_start != -1:
-            response = input_string[response_start:].lstrip("\n \u200b")
-        else:
-            response = input_string
-        response = input_string[response_start:].lstrip("\n \u200b")
-        if template == "BAI Zephyr" or template_guess == "Zephyr":  # Not sure if this is necessary?
-            if response.startswith("<|assistant|>"):
-                response = response[13:]
-        elif template == "BAI Opus" or template_guess == "Opus":
-            if response.startswith("<|im_start|>"):
-                response = response[12:]
+        response = input_string[response_start:]
         for end_tag in end_tags:
             tag_index = response.find(end_tag)
             if tag_index != -1:
                 response = response[:tag_index]
+        if applied_template == "Zephyr":
+            response = response.replace("<|assistant|>", "")
+        elif applied_template == "Opus":
+            response = response.replace("<|im_start|>", "")
         code = is_likely_code(response)
         log(f"Is likely code: {code}")
         if not code:
