@@ -442,8 +442,10 @@ def post_process(input_string, llm, response_start):
             if tag_index != -1:
                 response = response[:tag_index]
         if applied_template == "Zephyr":
+            response = response.replace("<|assistant|>\n", "")
             response = response.replace("<|assistant|>", "")
         elif applied_template == "Opus":
+            response = response.replace("<|im_start|>\n", "")
             response = response.replace("<|im_start|>", "")
         code = is_likely_code(response)
         log(f"Is likely code: {code}")

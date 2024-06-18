@@ -177,7 +177,7 @@ def handle_memory_failed():
         [sg.Text("Detected errors in memory fingerprint. What would you like to do?")],
         [sg.Column([[sg.Button("Fix"), sg.Button("Ignore")]], justification="center")]
     ]
-    window = sg.Window("Memory Check Failed!", layout, icon="./resources/bai.ico", modal=True)
+    window = sg.Window("Memory Check Failed!", layout, icon="./resources/bai.png", modal=True)
     while True:
         event, _ = window.read()
         if event in (sg.WIN_CLOSED, "Ignore"):
@@ -386,7 +386,7 @@ def popup_message(message):
         [sg.Text(message)],
         [sg.Column([[sg.Button("OK")]], justification="center")]
     ]
-    window = sg.Window("Notice!", layout, icon="./resources/bai.ico", modal=True)
+    window = sg.Window("Notice!", layout, icon="./resources/bai.png", modal=True)
     while True:
         event, _ = window.read()
         if event in (sg.WIN_CLOSED, "OK"):
@@ -477,7 +477,7 @@ def handle_about_event():
     layout.append([sg.Text(f"OS: {os_name} {os_version}", justification="center", expand_x=True)])
     layout.append([sg.Column([[sg.Button("OK")]], justification="center")])
     # Window
-    window = sg.Window("About BlissfulAI", layout, modal=True, finalize=True, icon="./resources/bai.ico")
+    window = sg.Window("About BlissfulAI", layout, modal=True, finalize=True, icon="./resources/bai.png")
 
     # Centering text (kind of a workaround since PySimpleGUI does not directly support centering multi-line text)
     for element in window.element_list():
@@ -563,7 +563,7 @@ def create_edit_window():
         "stm_size", "ltm_size", "num_keywords", "num_beams",
         "persistent", "messages_editor"
     ]
-    window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon="./resources/bai.ico")
+    window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon="./resources/bai.png")
 
     for evname in event_names:
         window[evname].Widget.bind('<Button-1>', lambda event, window=window, evname=evname: update_help(window, evname))
@@ -605,7 +605,7 @@ def create_settings_window():
         [sg.Text("Help: Explanations of settings will appear here.", size=(60, 3), key="explanation", text_color="green")],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
-    window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.ico", finalize=True)
+    window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.png", finalize=True)
     event_names = [
         "username", "backend", "quant", "template", "default_model_path",
         "default_personality_path", "stream", "auto_template", "autosave"
@@ -661,7 +661,7 @@ def edit_response(initial_string):
         [sg.Text("Edit response:"), sg.Multiline(initial_string, size=(100, 3), key='MLINE')],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
-    window = sg.Window("Edit Response", layout, icon="./resources/bai.ico", modal=True)
+    window = sg.Window("Edit Response", layout, icon="./resources/bai.png", modal=True)
     while True:
         event, values = window.read(timeout=50)
         if event in [sg.WIN_CLOSED, "Cancel"]:
@@ -710,7 +710,7 @@ def create_guidance_message():
         [sg.Text("Help: Guidance messages are temporary system messages you can use to guide the conversation. They persist only for the set number of turns then disappear from memory. They are not saved between sessions. A 'turn' consists of one user input plus one AI response.", size=(80, 3), text_color="green")],
         [sg.Button("Add"), sg.Button("Close")]
     ]
-    guidance_window = sg.Window("Create Guidance Message", layout, icon="./resources/bai.ico", modal=True, finalize=True)
+    guidance_window = sg.Window("Create Guidance Message", layout, icon="./resources/bai.png", modal=True, finalize=True)
     update_display()
     output_widget = guidance_window["CURMSG"].Widget
     output_widget.bind("<Button-3>", handle_right_click)
@@ -750,7 +750,8 @@ def handle_middle_click(event, window, context_menu, last_entry):
         widget = event.widget
         index = widget.index(f"@{event.x},{event.y}")
         line_number = int(index.split(".")[0]) - 1
-        line_number += (len(ai.core_memory) - max_history)  # This compensates for the chat window only showing the last max_history
+        if len(ai.core_memory) > max_history:
+            line_number += (len(ai.core_memory) - max_history)  # This compensates for the chat window only showing the last max_history
 
         def update_rating_up():
             if 0 <= line_number < len(ai.core_memory):
@@ -803,7 +804,8 @@ def update_context_menu(event, window):
     widget = event.widget
     index = widget.index(f"@{event.x},{event.y}")
     line_number = int(index.split(".")[0]) - 1
-    line_number += (len(ai.core_memory) - max_history)  # This compensates for the chat window only showing the last max_history
+    if len(ai.core_memory) > max_history:
+        line_number += (len(ai.core_memory) - max_history)  # This compensates for the chat window only showing the last max_history
     output_widget = window["-OUTPUT-"].Widget
     context_menu = tk.Menu(output_widget, tearoff=0)
     if line_number == len(ai.core_memory) - 1:
@@ -811,6 +813,7 @@ def update_context_menu(event, window):
         context_menu.add_command(label="Regenerate")
     else:
         last_entry = False
+    log("Accessing line: " + str(line_number))
     context_menu.add_command(label="Edit")
     context_menu.add_command(label="👍")
     context_menu.add_command(label="-")
@@ -842,7 +845,7 @@ def create_chat_window():
         [sg.Multiline(key="-INPUT-", size=(40, 3), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
         [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About")],
     ]
-    window = sg.Window("BlissfulAI", layout, resizable=True, finalize=True, size=(width, height), icon="./resources/bai.ico")
+    window = sg.Window("BlissfulAI", layout, resizable=True, finalize=True, size=(width, height), icon="./resources/bai.png")
     window['-INPUT-'].set_focus()
     # Bind to the resize event
     window.TKroot.bind("<Configure>", lambda event: enforce_minimum_size(window, width, height))

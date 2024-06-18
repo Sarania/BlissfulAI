@@ -1,0 +1,23 @@
+[
+    {
+        "name": "Name",
+        "top_p": 1.0,
+        "top_k": 50,
+        "temperature": 1.0,
+        "response_length": 64,
+        "persistent": true,
+        "stm_size": 24,
+        "ltm_size": 24,
+        "repetition_penalty": 1.0,
+        "length_penalty": 1.0,
+        "num_beams": 1,
+        "num_keywords": 3,
+        "top_p_enable": false,
+        "top_k_enable": false,
+        "typical_p": 0.92,
+        "typical_p_enable": true,
+        "temperature_enable": false,
+        "length_penalty_enable": false,
+        "repetition_penalty_enable": false
+    }
+]
