@@ -4,7 +4,7 @@
 Welcome to **BlissfulAI**, a work in progress uncensored chatbot for LLMs.
 
 <p align="center">
-  <img src="resources/britney2.png" alt="Example interaction"/>
+  <img src="resources/screenshot.png" alt="Example interaction"/>
 </p>
 
 ## Features
