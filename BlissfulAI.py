@@ -1168,17 +1168,21 @@ def main():
                 load_personality(old_personality, window)
             update_main_window(window)
         elif event == "Load Personality":
+            old_personality = None
             if ps.model_status != "inferencing":
                 if ps.personality_status == "loaded":
                     log("Saving current personality...")
                     update_hard_memory()
+                    old_personality = ai.personality_path
                     ai.reset()
                 selected_folder = select_folder()
                 if selected_folder == "":
                     log("No personality selected!")
+                    if old_personality is not None:
+                        load_personality(old_personality, window)
                 else:
                     load_personality(selected_folder, window)
-                    update_main_window(window)
+                update_main_window(window)
             else:
                 popup_message("Cannot reload personality while the model is inferencing!")
         elif event == "Settings":
