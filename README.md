@@ -9,14 +9,14 @@ Welcome to **BlissfulAI**, a work in progress uncensored chatbot for LLMs.
 
 ## Features
 
-- Uncensored character driven interactive chat powered by large language models
+- Uncensored character driven interactive chat powered by large language models!
 - Create customized characters and then interact with them! Any character you like! They can be your friend, your mentor, your lover, your advisor, and so much more!
 - Characters develop from their interactions with you!
 - Characters use a working memory system: a context sensitive combination of recent conversation(short term memory) and past conversations(long term memory).
 - Fully customizable, adaptable to different hardware configurations. Low VRAM? Limp by with a quantized 3 billion parameter model. Max VRAM? Run giant models that the rest of us can only dream about!
 - Live help system and solid default settings so you can jump right in!
-- Voices, personality traits, character avatars and more are planned for the future!
-- Fully open source
+- Voices, personality traits, 3D character avatars and more are planned for the future!
+- Fully open source, licensed under CC-BY-NC-SA!
 
 
 
@@ -55,6 +55,10 @@ You're now ready to go! Run the program by double clicking either "BlissfulAI.ba
 ### Beginners:
 
 When you first run the program, make sure to check out the Settings dialog and set up your backend, quantization, and other settings. Quantization is necessary for loading large models, explaining it is beyond the scope of this project. Suffice it to say, quantization sacrifices a little bit of quality for a lot less memory usage. If you are running out of VRAM, try using quantization. Next, you will need to create a new personality to interact with. Give it a name and adjust the settings to your liking. If you're unsure, leave the settings at default except for "Name" and the system messages section. This system messages define the character. [Example of some system messages and their effect.](/resources/baiexample.png) You can have as many system messages as you like, but too many tends to dillute their effect. I try to keep it around 8 or less. If you wish to know further information about the various parameters you can adjust, the internet is a good place to start but experimentation is best!
+
+### Avatars:
+
+Basic avatar support has been added! Place a square aspect ratio image named "default.png" into the personality's folder and it will be displayed when the personality is loaded. Hint: You could create this image with Stable Diffusion or another AI image generator! Many websites offer the ability to do so for free if you don't want to fuss with doing it locally.
 
 ## Templates:
 
