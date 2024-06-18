@@ -59,7 +59,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._template = "BAI Opus"  # Selected template, saved to file
         self._special = ""  # Special command, not saved
         self._auto_template = False  # Whether to try to use BAI auto templating. Saved to settings.
-        self._VERSION = "1.0.0"  # Program version
+        self._VERSION = "1.2.0"  # Program version
 
     @property
     def backend(self):

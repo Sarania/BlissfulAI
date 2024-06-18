@@ -166,7 +166,7 @@ def custom_template(llm):
             elif entry["role"] == "assistant":
                 cprompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
                 cprompt += entry["content"]
-                cprompt += "<|im_end|>\n "
+                cprompt += "<|im_end|>\n"
             elif entry["role"] == "system":
                 cprompt += "<|im_start>|>system\n"
                 cprompt += entry["content"]
