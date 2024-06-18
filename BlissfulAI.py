@@ -45,6 +45,9 @@ import torch
 if sys.platform == "win32":
     import win32api
     import win32con
+    GLOBAL_ICON = "./resources/bai.ico"
+else:
+    GLOBAL_ICON = "./resources/bai.png"
 
 
 class LanguageModel():
@@ -176,7 +179,7 @@ def handle_memory_failed():
         [sg.Text("Detected errors in memory fingerprint. What would you like to do?")],
         [sg.Column([[sg.Button("Fix"), sg.Button("Ignore")]], justification="center")]
     ]
-    window = sg.Window("Memory Check Failed!", layout, icon="./resources/bai.png", modal=True)
+    window = sg.Window("Memory Check Failed!", layout, icon=GLOBAL_ICON, modal=True)
     while True:
         event, _ = window.read()
         if event in (sg.WIN_CLOSED, "Ignore"):
@@ -385,7 +388,7 @@ def popup_message(message):
         [sg.Text(message)],
         [sg.Column([[sg.Button("OK")]], justification="center")]
     ]
-    window = sg.Window("Notice!", layout, icon="./resources/bai.png", modal=True)
+    window = sg.Window("Notice!", layout, icon=GLOBAL_ICON, modal=True)
     while True:
         event, _ = window.read()
         if event in (sg.WIN_CLOSED, "OK"):
@@ -476,7 +479,7 @@ def handle_about_event():
     layout.append([sg.Text(f"OS: {os_name} {os_version}", justification="center", expand_x=True)])
     layout.append([sg.Column([[sg.Button("OK")]], justification="center")])
     # Window
-    window = sg.Window("About BlissfulAI", layout, modal=True, finalize=True, icon="./resources/bai.png")
+    window = sg.Window("About BlissfulAI", layout, modal=True, finalize=True, icon=GLOBAL_ICON)
 
     # Centering text (kind of a workaround since PySimpleGUI does not directly support centering multi-line text)
     for element in window.element_list():
@@ -562,7 +565,7 @@ def create_edit_window():
         "stm_size", "ltm_size", "num_keywords", "num_beams",
         "persistent", "messages_editor"
     ]
-    window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon="./resources/bai.png")
+    window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon=GLOBAL_ICON)
 
     for evname in event_names:
         window[evname].Widget.bind('<Button-1>', lambda event, window=window, evname=evname: update_help(window, evname))
@@ -606,7 +609,7 @@ def create_settings_window():
         [sg.Text("Help: Explanations of settings will appear here.", size=(60, 3), key="explanation", text_color="green")],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
-    window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.png", finalize=True)
+    window = sg.Window("Settings", layout, modal=True, icon=GLOBAL_ICON, finalize=True)
     event_names = [
         "username", "backend", "quant", "template", "default_model_path",
         "default_personality_path", "stream", "auto_template", "autosave",
@@ -664,7 +667,7 @@ def edit_response(initial_string):
         [sg.Text("Edit response:"), sg.Multiline(initial_string, size=(100, 3), key='MLINE')],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
-    window = sg.Window("Edit Response", layout, icon="./resources/bai.png", modal=True)
+    window = sg.Window("Edit Response", layout, icon=GLOBAL_ICON, modal=True)
     while True:
         event, values = window.read(timeout=50)
         if event in [sg.WIN_CLOSED, "Cancel"]:
@@ -713,7 +716,7 @@ def create_guidance_message():
         [sg.Text("Help: Guidance messages are temporary system messages you can use to guide the conversation. They persist only for the set number of turns then disappear from memory. They are not saved between sessions. A 'turn' consists of one user input plus one AI response.", size=(80, 3), text_color="green")],
         [sg.Button("Add"), sg.Button("Close")]
     ]
-    guidance_window = sg.Window("Create Guidance Message", layout, icon="./resources/bai.png", modal=True, finalize=True)
+    guidance_window = sg.Window("Create Guidance Message", layout, icon=GLOBAL_ICON, modal=True, finalize=True)
     update_display()
     output_widget = guidance_window["CURMSG"].Widget
     output_widget.bind("<Button-3>", handle_right_click)
@@ -849,7 +852,7 @@ def create_chat_window():
         [sg.Multiline(key="-INPUT-", size=(40, 3), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
         [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About")],
     ]
-    window = sg.Window("BlissfulAI", layout, resizable=True, finalize=True, size=(width, height), icon="./resources/bai.png")
+    window = sg.Window("BlissfulAI", layout, resizable=True, finalize=True, size=(width, height), icon=GLOBAL_ICON)
     window['-INPUT-'].set_focus()
     # Bind to the resize event
     window.TKroot.bind("<Configure>", lambda event: enforce_minimum_size(window, width, height))

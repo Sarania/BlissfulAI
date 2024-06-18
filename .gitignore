@@ -5,3 +5,4 @@ logfile.txt
 settings.json
 install_torch.bat
 install_torch.sh
+.directory

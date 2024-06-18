@@ -24,16 +24,18 @@ def create_setup_window(os_type):
     if os_type == "Windows":
         cuda_options = ["CUDA 12.1", "CUDA 11.8", "CPU"]
         help_text = "Torch Version Help: If you have an Nvidia GPU equal to or newer than GTX 9xx, select one of the CUDA options.\nIf you don't then select CPU but note that inference will be SLOW."
+        icon = "./resources/bai.ico"
     elif os_type == "Linux":
         cuda_options = ["CUDA 12.1", "CUDA 11.8", "ROCm 6.0", "ROCm 5.7", "CPU"]
         help_text = "Torch Version Help: If you have an Nvidia GPU equal to or newer than GTX 9xx, select one of the CUDA options.\nIf you have an AMD GPU equal to or newer than RX 6XXX, select one of the ROCm options.\nIf you have neither then select CPU but note that inference will be SLOW."
+        icon = "./resources/bai.png"
     layout = [
         [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username")],
         [sg.Text("Torch Version:", size=(label_width, 1)), sg.Combo(cuda_options, default_value="CPU", key="cuda", readonly=True)],
         [sg.Button("Save"), sg.Button("Cancel")],
         [sg.Text(help_text, text_color="green")]
     ]
-    window = sg.Window("BAI Easy setup", layout, modal=True, icon="./resources/bai.ico")
+    window = sg.Window("BAI Easy setup", layout, modal=True, icon=icon)
     return window
 
 
