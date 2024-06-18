@@ -45,7 +45,6 @@ import torch
 if sys.platform == "win32":
     import win32api
     import win32con
-max_history = 200
 
 
 class LanguageModel():
@@ -278,7 +277,7 @@ def update_main_window(window):
     ps = ProgramSettings()
     clear_conversation(window)
     for i, message in enumerate(ai.core_memory):
-        if len(ai.core_memory) - max_history <= i:
+        if len(ai.core_memory) - ps.max_history <= i:
             sender_role = message["role"]
             sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
             sender_color = "purple" if sender_role == "assistant" else "blue"
@@ -584,7 +583,8 @@ def create_settings_window():
             "default_personality_path": "(Default Personality) - The personality to load on startup.",
             "stream": "(Stream output to STDOUT?) - Whether to stream the generated tokens to stdout as they are generated.",
             "autosave": "(Autosave personality?) - If enabled, automatically save the loaded personality once a minute.",
-            "auto_template": "(TRY to auto-select best): tries to automatically select the best template based on the model. If it fails, falls back to user selection."
+            "auto_template": "(TRY to auto-select best): tries to automatically select the best template based on the model. If it fails, falls back to user selection.",
+            "max_history": "(Max History): The maximum number of messages to display in the chat log. Too many will cause lag when updating it."
         }
         window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
 
@@ -601,14 +601,16 @@ def create_settings_window():
         [sg.Text("Model Template:", size=(label_width, 1)), sg.Combo(template_options, default_value=ps.template, key="template", readonly=True, enable_events=True), sg.Checkbox("TRY to auto-select best", default=ps.auto_template, key="auto_template", enable_events=True)],
         [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, enable_events=True, key="default_model_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_model_path")],
         [sg.Text("Default Personality:", size=(label_width, 1)), sg.Input(default_text=ps.default_personality, enable_events=True, key="default_personality_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_personality_path")],
-        [sg.Text("Stream output to STDOUT?", size=(label_width, 1)), sg.Checkbox("", default=ps.do_stream, key="stream", enable_events=True), sg.Text("Autosave personality?", size=(label_width, 1)), sg.Checkbox("", default=ps.autosave, key="autosave", enable_events=True)],
+        [sg.Text("Max History:", size=(label_width, 1)), sg.Slider(range=(100, 1000), orientation='h', size=(string_width, 10), default_value=ps.max_history, key='max_history', enable_events=True)],
+        [sg.Text("Stream output to STDOUT?", size=(label_width + 4, 1)), sg.Checkbox("", default=ps.do_stream, key="stream", enable_events=True), sg.Text("Autosave personality?", size=(label_width, 1)), sg.Checkbox("", default=ps.autosave, key="autosave", enable_events=True)],
         [sg.Text("Help: Explanations of settings will appear here.", size=(60, 3), key="explanation", text_color="green")],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
     window = sg.Window("Settings", layout, modal=True, icon="./resources/bai.png", finalize=True)
     event_names = [
         "username", "backend", "quant", "template", "default_model_path",
-        "default_personality_path", "stream", "auto_template", "autosave"
+        "default_personality_path", "stream", "auto_template", "autosave",
+        "max_history"
     ]
 
     for evname in event_names:
@@ -639,6 +641,7 @@ def handle_settings_event():
             ps.username = values["username"]
             ps.template = values["template"]
             ps.auto_template = values["auto_template"]
+            ps.max_history = int(values["max_history"])
             ps.autosave = values["autosave"]
             log("Settings updated.")
             ps.save_to_file()
@@ -750,8 +753,8 @@ def handle_middle_click(event, window, context_menu, last_entry):
         widget = event.widget
         index = widget.index(f"@{event.x},{event.y}")
         line_number = int(index.split(".")[0]) - 1
-        if len(ai.core_memory) > max_history:
-            line_number += (len(ai.core_memory) - max_history)  # This compensates for the chat window only showing the last max_history
+        if len(ai.core_memory) > ps.max_history:
+            line_number += (len(ai.core_memory) - ps.max_history)  # This compensates for the chat window only showing the last ps.max_history
 
         def update_rating_up():
             if 0 <= line_number < len(ai.core_memory):
@@ -801,11 +804,12 @@ def update_context_menu(event, window):
     - window: The handle to the main window
     """
     ai = AI()
+    ps = ProgramSettings()
     widget = event.widget
     index = widget.index(f"@{event.x},{event.y}")
     line_number = int(index.split(".")[0]) - 1
-    if len(ai.core_memory) > max_history:
-        line_number += (len(ai.core_memory) - max_history)  # This compensates for the chat window only showing the last max_history
+    if len(ai.core_memory) > ps.max_history:
+        line_number += (len(ai.core_memory) - ps.max_history)  # This compensates for the chat window only showing the last ps.max_history
     output_widget = window["-OUTPUT-"].Widget
     context_menu = tk.Menu(output_widget, tearoff=0)
     if line_number == len(ai.core_memory) - 1:
@@ -1180,6 +1184,7 @@ def main():
         elif event == "Settings":
             if ps.model_status in ["ready", "unloaded"]:
                 handle_settings_event()
+                update_main_window(window)
             else:
                 popup_message("Can't change settings while the model is loading or busy!")
         # Allows editing of the personality_defitinion and system messages

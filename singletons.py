@@ -58,7 +58,8 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._username = "User"  # Username, saved to file
         self._template = "BAI Opus"  # Selected template, saved to file
         self._special = ""  # Special command, not saved
-        self._auto_template = False  # Whether to try to use BAI auto templating. Saved to settings.
+        self._auto_template = False  # Whether to try to use BAI auto templating. Saved to file
+        self._max_history = 200  # The max history to display in the chat window, saved to file
         self._VERSION = "1.2.0"  # Program version
 
     @property
@@ -237,6 +238,21 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._auto_template = value
 
     @property
+    def max_history(self):
+        """Gets the current max_history setting."""
+        return self._max_history
+
+    @max_history.setter
+    def max_history(self, value):
+        """Sets the max_history setting, ensuring it is an int.
+         Parameters:
+            value: The new max_history setting.
+        """
+        if not isinstance(value, int):
+            raise ValueError("max_history must be an int")
+        self._max_history = value
+
+    @property
     def VERSION(self):
         """Gets the current version of the program."""
         return self._VERSION
@@ -254,7 +270,8 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_autosave": self._autosave,
             "_username": self._username,
             "_template": self._template,
-            "_auto_template": self._auto_template
+            "_auto_template": self._auto_template,
+            "_max_history": self._max_history
         }
         # Write the dictionary to a file as JSON
         with open("./settings.json", "w", encoding="utf-8") as file:
@@ -283,7 +300,8 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_autosave": True,
             "_username": "User",
             "_template": "BAI Opus",
-            "_auto_template": False
+            "_auto_template": False,
+            "_max_history": 200
         }
 
         # Check if the settings file exists
@@ -308,6 +326,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         instance.username = data.get("_username", default_settings["_username"])
         instance.template = data.get("_template", default_settings["_template"])
         instance.auto_template = data.get("_auto_template", default_settings["_auto_template"])
+        instance.max_history = data.get("_max_history", default_settings["_max_history"])
         return instance
 
 
