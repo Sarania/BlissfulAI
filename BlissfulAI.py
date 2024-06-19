@@ -546,7 +546,7 @@ def create_edit_window():
             "-AVATAR-": "(Avatar) - Let's you choose a picture to represent the AI"
         }
 
-        window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
+        window["-HELP_TEXT-"].update(f"Help: {explanations[evname]}", text_color="green")
     ai = AI()
     # Define the maximum label width for uniformity
     label_width = 20
@@ -564,9 +564,9 @@ def create_edit_window():
     # Update layout
     layout = [
         [sg.Column([
-            [sg.Image(data=image_data, key='-AVATAR-', size=(256, 256))],
-            [sg.Push(), sg.FileBrowse('Choose Avatar', key='-BROWSE-', file_types=(("Image Files", "*.png *.jpg *.jpeg"),)), sg.Push()]
-        ], vertical_alignment='top'),
+            [sg.Image(data=image_data, key="-AVATAR-", size=(256, 256))],
+            [sg.Push(), sg.FileBrowse("Choose Avatar", key="-BROWSE-", file_types=(("Image Files", "*.png *.jpg *.jpeg"),)), sg.Push()]
+        ], vertical_alignment="top"),
 
             sg.Column([
                 [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
@@ -584,7 +584,7 @@ def create_edit_window():
                 [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
                 [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
                 [sg.Text("Help: (parameter)(range)(starter value)", size=(80, 1), text_color="green")],
-                [sg.Text("Help: Explanations of parameters will appear here when clicked.", size=(80, 3), key="explanation", text_color="green")],
+                [sg.Text("Help: Explanations of parameters will appear here when clicked.", size=(80, 3), key="-HELP_TEXT-", text_color="green")],
                 [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
                 [sg.Column(messages_editor, vertical_alignment="top")],
                 [sg.Button("Save"), sg.Button("Cancel")]
@@ -599,7 +599,7 @@ def create_edit_window():
     window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon=GLOBAL_ICON)
 
     for evname in event_names:
-        window[evname].Widget.bind('<Button-1>', lambda event, window=window, evname=evname: update_help(window, evname))
+        window[evname].Widget.bind("<Button-1>", lambda event, window=window, evname=evname: update_help(window, evname))
     return window
 
 
@@ -609,18 +609,18 @@ def create_settings_window():
     """
     def update_help(window, evname):
         explanations = {
-            "username": "(Username) - What you wanna be called. Used in the chat log and certain templates.",
-            "backend": "(Backend) - The backend to run inferences on. 'auto' is best in most cases.",
-            "quant": "(Model Quantization) - The quantization to load the model with. Saves VRAM at a slight cost to accuracy.",
-            "template": "(Model Template) - The template for formatting the model's input.",
-            "default_model_path": "(Default Model) - The model to load on startup.",
-            "default_personality_path": "(Default Personality) - The personality to load on startup.",
-            "stream": "(Stream output to STDOUT?) - Whether to stream the generated tokens to stdout as they are generated.",
-            "autosave": "(Autosave personality?) - If enabled, automatically save the loaded personality once a minute.",
-            "auto_template": "(TRY to auto-select best): tries to automatically select the best template based on the model. If it fails, falls back to user selection.",
-            "max_history": "(Max History): The maximum number of messages to display in the chat log. Too many will cause lag when updating it."
+            "-USERNAME-": "(Username) - What you wanna be called. Used in the chat log and certain templates.",
+            "-BACKEND-": "(Backend) - The backend to run inferences on. 'auto' is best in most cases.",
+            "-QUANTIZATION-": "(Model Quantization) - The quantization to load the model with. Saves VRAM at a slight cost to accuracy.",
+            "-TEMPLATE-": "(Model Template) - The template for formatting the model's input.",
+            "-DEFAULT_MODEL_PATH-": "(Default Model) - The model to load on startup.",
+            "-DEFAULT_PERSONALITY_PATH-": "(Default Personality) - The personality to load on startup.",
+            "-STREAM_ENABLE-": "(Stream output to STDOUT?) - Whether to stream the generated tokens to stdout as they are generated.",
+            "-AUTOSAVE_ENABLE-": "(Autosave personality?) - If enabled, automatically save the loaded personality once a minute.",
+            "-AUTO_TEMPLATE_ENABLE-": "(TRY to auto-select best): tries to automatically select the best template based on the model. If it fails, falls back to user selection.",
+            "-MAX_HISTORY-": "(Max History): The maximum number of messages to display in the chat log. Too many will cause lag when updating it."
         }
-        window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
+        window["-HELP_TEXT-"].update(f"Help: {explanations[evname]}", text_color="green")
 
     ps = ProgramSettings()
     label_width = 20
@@ -629,26 +629,26 @@ def create_settings_window():
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
     template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
-        [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="username", enable_events=True)],
-        [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="backend", readonly=True, enable_events=True)],
-        [sg.Text("Model Quantization:", size=(label_width, 1)), sg.Combo(quant_options, default_value=ps.quant, key="quant", readonly=True, enable_events=True)],
-        [sg.Text("Model Template:", size=(label_width, 1)), sg.Combo(template_options, default_value=ps.template, key="template", readonly=True, enable_events=True), sg.Checkbox("TRY to auto-select best", default=ps.auto_template, key="auto_template", enable_events=True)],
-        [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, enable_events=True, key="default_model_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_model_path")],
-        [sg.Text("Default Personality:", size=(label_width, 1)), sg.Input(default_text=ps.default_personality, enable_events=True, key="default_personality_path", size=(string_width, 1)), sg.FolderBrowse("Browse", target="default_personality_path")],
-        [sg.Text("Max History:", size=(label_width, 1)), sg.Slider(range=(100, 1000), orientation='h', size=(string_width, 10), default_value=ps.max_history, key='max_history', enable_events=True)],
-        [sg.Text("Stream output to STDOUT?", size=(label_width + 4, 1)), sg.Checkbox("", default=ps.do_stream, key="stream", enable_events=True), sg.Text("Autosave personality?", size=(label_width, 1)), sg.Checkbox("", default=ps.autosave, key="autosave", enable_events=True)],
-        [sg.Text("Help: Explanations of settings will appear here.", size=(60, 3), key="explanation", text_color="green")],
+        [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="-USERNAME-", enable_events=True)],
+        [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="-BACKEND-", readonly=True, enable_events=True)],
+        [sg.Text("Model Quantization:", size=(label_width, 1)), sg.Combo(quant_options, default_value=ps.quant, key="-QUANTIZATION-", readonly=True, enable_events=True)],
+        [sg.Text("Model Template:", size=(label_width, 1)), sg.Combo(template_options, default_value=ps.template, key="-TEMPLATE-", readonly=True, enable_events=True), sg.Checkbox("TRY to auto-select best", default=ps.auto_template, key="-AUTO_TEMPLATE_ENABLE-", enable_events=True)],
+        [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, enable_events=True, key="-DEFAULT_MODEL_PATH-", size=(string_width, 1)), sg.FolderBrowse("Browse", target="-DEFAULT_MODEL_PATH-")],
+        [sg.Text("Default Personality:", size=(label_width, 1)), sg.Input(default_text=ps.default_personality, enable_events=True, key="-DEFAULT_PERSONALITY_PATH-", size=(string_width, 1)), sg.FolderBrowse("Browse", target="-DEFAULT_PERSONALITY_PATH-")],
+        [sg.Text("Max History:", size=(label_width, 1)), sg.Slider(range=(100, 1000), orientation="h", size=(string_width, 10), default_value=ps.max_history, key="-MAX_HISTORY-", enable_events=True)],
+        [sg.Text("Stream output to STDOUT?", size=(label_width + 4, 1)), sg.Checkbox("", default=ps.do_stream, key="-STREAM_ENABLE-", enable_events=True), sg.Text("Autosave personality?", size=(label_width, 1)), sg.Checkbox("", default=ps.autosave, key="-AUTOSAVE_ENABLE-", enable_events=True)],
+        [sg.Text("Help: Explanations of settings will appear here.", size=(60, 3), key="-HELP_TEXT-", text_color="green")],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
     window = sg.Window("Settings", layout, modal=True, icon=GLOBAL_ICON, finalize=True)
     event_names = [
-        "username", "backend", "quant", "template", "default_model_path",
-        "default_personality_path", "stream", "auto_template", "autosave",
-        "max_history"
+        "-USERNAME-", "-BACKEND-", "-QUANTIZATION-", "-TEMPLATE-", "-DEFAULT_MODEL_PATH-",
+        "-DEFAULT_PERSONALITY_PATH-", "-STREAM_ENABLE-", "-AUTO_TEMPLATE_ENABLE-", "-AUTOSAVE_ENABLE-",
+        "-MAX_HISTORY-"
     ]
 
     for evname in event_names:
-        window[evname].Widget.bind('<Button-1>', lambda _, window=window, evname=evname: update_help(window, evname))
+        window[evname].Widget.bind("<Button-1>", lambda _, window=window, evname=evname: update_help(window, evname))
 
     return window
 
@@ -666,17 +666,17 @@ def handle_settings_event():
             break
         if event == "Save":
             if ps.model_status != "unloaded":
-                ps.model_status = "reload needed" if ps.quant != values["quant"] else ps.model_status
-            ps.backend = values["backend"]
-            ps.quant = values["quant"]
-            ps.default_model = values["default_model_path"]
-            ps.default_personality = values["default_personality_path"]
-            ps.do_stream = values["stream"]
-            ps.username = values["username"]
-            ps.template = values["template"]
-            ps.auto_template = values["auto_template"]
-            ps.max_history = int(values["max_history"])
-            ps.autosave = values["autosave"]
+                ps.model_status = "reload needed" if ps.quant != values["-QUANTIZATION-"] else ps.model_status
+            ps.backend = values["-BACKEND-"]
+            ps.quant = values["-QUANTIZATION-"]
+            ps.default_model = values["-DEFAULT_MODEL_PATH-"]
+            ps.default_personality = values["-DEFAULT_PERSONALITY_PATH-"]
+            ps.do_stream = values["-STREAM_ENABLE-"]
+            ps.username = values["-USERNAME-"]
+            ps.template = values["-TEMPLATE-"]
+            ps.auto_template = values["-AUTO_TEMPLATE_ENABLE-"]
+            ps.max_history = int(values["-MAX_HISTORY-"])
+            ps.autosave = values["-AUTOSAVE_ENABLE-"]
             log("Settings updated.")
             ps.save_to_file()
             settings_window.close()
@@ -695,7 +695,7 @@ def edit_response(initial_string):
     """
 
     layout = [
-        [sg.Text("Edit response:"), sg.Multiline(initial_string, size=(100, 3), key='-RESPONSE-')],
+        [sg.Text("Edit response:"), sg.Multiline(initial_string, size=(100, 3), key="-RESPONSE-")],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
     window = sg.Window("Edit Response", layout, icon=GLOBAL_ICON, modal=True)
@@ -705,7 +705,7 @@ def edit_response(initial_string):
             window.close()
             return initial_string
         if event == "Save":
-            edited_string = values['-RESPONSE-'].rstrip()
+            edited_string = values["-RESPONSE-"].rstrip()
             window.close()
             return edited_string
 
@@ -742,8 +742,8 @@ def create_guidance_message():
 
     layout = [
         [sg.Text("Current guidance:", size=(22, 1)), sg.Multiline(size=(100, 10), enable_events=True, disabled=True, key="-CURRENT_GUIDANCE-")],
-        [sg.Text("New Guidance Message:", size=(22, 1)), sg.Multiline("", size=(100, 3), key='-NEW_GUIDANCE-')],
-        [sg.Text("Number of turns:", size=(22, 1)), sg.InputText("", size=(10, 1), key='-TURNS-')],
+        [sg.Text("New Guidance Message:", size=(22, 1)), sg.Multiline("", size=(100, 3), key="-NEW_GUIDANCE-")],
+        [sg.Text("Number of turns:", size=(22, 1)), sg.InputText("", size=(10, 1), key="-TURNS-")],
         [sg.Text("Help: Guidance messages are temporary system messages you can use to guide the conversation. They persist only for the set number of turns then disappear from memory. They are not saved between sessions. A 'turn' consists of one user input plus one AI response.", size=(80, 3), text_color="green")],
         [sg.Button("Add"), sg.Button("Close")]
     ]
@@ -751,17 +751,17 @@ def create_guidance_message():
     update_display()
     output_widget = guidance_window["-CURRENT_GUIDANCE-"].Widget
     output_widget.bind("<Button-3>", handle_right_click)
-    guidance_window['-NEW_GUIDANCE-'].set_focus()
+    guidance_window["-NEW_GUIDANCE-"].set_focus()
     while True:
         event, values = guidance_window.read(timeout=50)
         if event in [sg.WIN_CLOSED, "Close"]:
             guidance_window.close()
             break
         if event == "Add":
-            if values['-NEW_GUIDANCE-'] and values['-TURNS-']:
-                new_message = values['-NEW_GUIDANCE-'].rstrip()
+            if values["-NEW_GUIDANCE-"] and values["-TURNS-"]:
+                new_message = values["-NEW_GUIDANCE-"].rstrip()
                 try:
-                    num_turns = int(values['-TURNS-'])
+                    num_turns = int(values["-TURNS-"])
                     ai.guidance_messages.append({"role": "system", "content": new_message, "turns": num_turns})
                     update_display()
                     guidance_window["-NEW_GUIDANCE-"].update("")
@@ -880,7 +880,7 @@ def create_chat_window():
         [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About")],
     ]
     window = sg.Window("BlissfulAI", layout, resizable=True, finalize=True, size=(width, height), icon=GLOBAL_ICON)
-    window['-INPUT-'].set_focus()
+    window["-INPUT-"].set_focus()
     # Bind to the resize event
     window.TKroot.bind("<Configure>", lambda event: enforce_minimum_size(window, width, height))
     window["-OUTPUT-"].Widget.config(selectbackground="#777777")
