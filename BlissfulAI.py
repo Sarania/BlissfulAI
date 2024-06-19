@@ -874,7 +874,12 @@ def create_chat_window():
     avatar_path = "./resources/bai_icon_full_res.png"
     image_data = load_image(avatar_path, 256, 256)
     layout = [
-        [sg.Image(data=image_data, key="-IMAGE-"), sg.Multiline(size=(40, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
+        [sg.Column(
+            [
+                [sg.Image(data=image_data, key="-IMAGE-")],
+                [sg.Text("", key="-PERSONALITY_NAME-", justification="center", size=(24, 1), text_color="purple", font=("Arial", 14))]
+            ]
+        ), sg.Multiline(size=(40, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
         [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True), sg.Button("Guidance"), sg.Button("Load Model"), sg.Button("Create Personality"), sg.Button("Load Personality"), sg.Button("Edit Personality"), sg.Button("Settings")],
         [sg.Multiline(key="-INPUT-", size=(40, 3), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
         [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About")],
@@ -1007,6 +1012,7 @@ def load_personality(personality_path, window):
         else:
             image_data = load_image("./resources/bai_icon_full_res.png", 256, 256)
         window["-IMAGE-"].update(image_data)
+        window["-PERSONALITY_NAME-"].update(ai.personality_definition["name"])
         ps.personality_status = "loaded"
     else:
         log("Personality configuration not found.")
@@ -1192,6 +1198,8 @@ def main():
                 ai.reset()
             if not handle_create_event() and old_personality is not None:
                 load_personality(old_personality, window)
+            else:
+                load_personality(ai.personality_path, window)
             update_main_window(window)
         elif event == "Load Personality":
             old_personality = None
