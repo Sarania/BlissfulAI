@@ -312,7 +312,7 @@ def handle_edit_event():
                 ai.personality_definition[key] = expected_type(values[key])
             log("Personality_defition updated.")
             # Split the text area content into lines, each representing a message's content
-            edited_contents = values["messages_editor"].split("\n")
+            edited_contents = values["-SYSTEM_MESSAGES-"].split("\n")
             # Update system_messages with the new contents
             system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
             ai.system_memory = system_messages
@@ -367,7 +367,7 @@ def handle_create_event():
                     ai.personality_definition[key] = expected_type(values[key])
                 log("Personality_defition updated.")
                 # Split the text area content into lines, each representing a message's content
-                edited_contents = values["messages_editor"].split("\n")
+                edited_contents = values["-SYSTEM_MESSAGES-"].split("\n")
                 # Update system_messages with the new contents
                 system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
                 ai.system_memory = system_messages
@@ -542,7 +542,7 @@ def create_edit_window():
             "num_keywords": "(num_keywords)(1+)(3) - Number of keywords extracted from the input for context searching.",
             "num_beams": "(num_beams)(1+)(1) - Number of alternatives explored for generating responses. Higher numbers increase response quality at the cost of speed and VRAM.",
             "persistent": "(persistent) - Whether the AI's conversation history is persistent across sessions.",
-            "messages_editor": "(system messages) - Defines the AI's personality",
+            "-SYSTEM_MESSAGES-": "(system messages) - Defines the AI's personality",
             "-AVATAR-": "(Avatar) - Let's you choose a picture to represent the AI"
         }
 
@@ -560,7 +560,7 @@ def create_edit_window():
     # System messages section
     # Serialize system_messages for editing
     editable_messages = "\n".join([msg["content"] for msg in ai.system_memory])
-    messages_editor = [[sg.Multiline(default_text=editable_messages, size=(80, 10), enable_events=True, key="messages_editor")]]
+    messages_editor = [[sg.Multiline(default_text=editable_messages, size=(80, 10), enable_events=True, key="-SYSTEM_MESSAGES-")]]
     # Update layout
     layout = [
         [sg.Column([
@@ -583,7 +583,7 @@ def create_edit_window():
                 [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
                 [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
                 [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-                [sg.Text("Help: (parameter)(range)(starter value)", size=(80, 1), key="expl", text_color="green")],
+                [sg.Text("Help: (parameter)(range)(starter value)", size=(80, 1), text_color="green")],
                 [sg.Text("Help: Explanations of parameters will appear here when clicked.", size=(80, 3), key="explanation", text_color="green")],
                 [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
                 [sg.Column(messages_editor, vertical_alignment="top")],
@@ -594,7 +594,7 @@ def create_edit_window():
         "name", "top_p", "typical_p", "top_k", "temperature",
         "length_penalty", "repetition_penalty", "response_length",
         "stm_size", "ltm_size", "num_keywords", "num_beams",
-        "persistent", "messages_editor", "-AVATAR-"
+        "persistent", "-SYSTEM_MESSAGES-", "-AVATAR-"
     ]
     window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon=GLOBAL_ICON)
 
@@ -695,7 +695,7 @@ def edit_response(initial_string):
     """
 
     layout = [
-        [sg.Text("Edit response:"), sg.Multiline(initial_string, size=(100, 3), key='MLINE')],
+        [sg.Text("Edit response:"), sg.Multiline(initial_string, size=(100, 3), key='-RESPONSE-')],
         [sg.Button("Save"), sg.Button("Cancel")]
     ]
     window = sg.Window("Edit Response", layout, icon=GLOBAL_ICON, modal=True)
@@ -705,7 +705,7 @@ def edit_response(initial_string):
             window.close()
             return initial_string
         if event == "Save":
-            edited_string = values['MLINE'].rstrip()
+            edited_string = values['-RESPONSE-'].rstrip()
             window.close()
             return edited_string
 
@@ -720,7 +720,7 @@ def create_guidance_message():
         current_messages = ""
         for i, entry in enumerate(ai.guidance_messages):
             current_messages += f"{i + 1}: {entry['content']}; Turns remaining: {entry['turns']}\n"
-        guidance_window["CURMSG"].update(current_messages)
+        guidance_window["-CURRENT_GUIDANCE-"].update(current_messages)
 
     def handle_right_click(tk_event):
         if len(ai.guidance_messages) > 0:
@@ -741,31 +741,31 @@ def create_guidance_message():
     ai = AI()
 
     layout = [
-        [sg.Text("Current guidance:", size=(22, 1)), sg.Multiline(size=(100, 10), enable_events=True, disabled=True, key="CURMSG")],
-        [sg.Text("New Guidance Message:", size=(22, 1)), sg.Multiline("", size=(100, 3), key='MLINE')],
-        [sg.Text("Number of turns:", size=(22, 1)), sg.InputText("", size=(10, 1), key='TURNS')],
+        [sg.Text("Current guidance:", size=(22, 1)), sg.Multiline(size=(100, 10), enable_events=True, disabled=True, key="-CURRENT_GUIDANCE-")],
+        [sg.Text("New Guidance Message:", size=(22, 1)), sg.Multiline("", size=(100, 3), key='-NEW_GUIDANCE-')],
+        [sg.Text("Number of turns:", size=(22, 1)), sg.InputText("", size=(10, 1), key='-TURNS-')],
         [sg.Text("Help: Guidance messages are temporary system messages you can use to guide the conversation. They persist only for the set number of turns then disappear from memory. They are not saved between sessions. A 'turn' consists of one user input plus one AI response.", size=(80, 3), text_color="green")],
         [sg.Button("Add"), sg.Button("Close")]
     ]
     guidance_window = sg.Window("Create Guidance Message", layout, icon=GLOBAL_ICON, modal=True, finalize=True)
     update_display()
-    output_widget = guidance_window["CURMSG"].Widget
+    output_widget = guidance_window["-CURRENT_GUIDANCE-"].Widget
     output_widget.bind("<Button-3>", handle_right_click)
-    guidance_window['MLINE'].set_focus()
+    guidance_window['-NEW_GUIDANCE-'].set_focus()
     while True:
         event, values = guidance_window.read(timeout=50)
         if event in [sg.WIN_CLOSED, "Close"]:
             guidance_window.close()
             break
         if event == "Add":
-            if values['MLINE'] and values['TURNS']:
-                new_message = values['MLINE'].rstrip()
+            if values['-NEW_GUIDANCE-'] and values['-TURNS-']:
+                new_message = values['-NEW_GUIDANCE-'].rstrip()
                 try:
-                    num_turns = int(values['TURNS'])
+                    num_turns = int(values['-TURNS-'])
                     ai.guidance_messages.append({"role": "system", "content": new_message, "turns": num_turns})
                     update_display()
-                    guidance_window["MLINE"].update("")
-                    guidance_window["TURNS"].update("")
+                    guidance_window["-NEW_GUIDANCE-"].update("")
+                    guidance_window["-TURNS-"].update("")
                 except ValueError:
                     popup_message("Number of turns must be an integer!")
             else:
