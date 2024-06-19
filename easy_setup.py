@@ -74,17 +74,17 @@ def main():
 
     if os_type == "Linux":
         # For Linux, write a bash script
-        script_name = 'install_torch.sh'
+        script_name = "install_torch.sh"
         script_content = f"#!/bin/bash\n{command}\n"
     elif os_type == "Windows":
         # For Windows, write a batch file
-        script_name = 'install_torch.bat'
+        script_name = "install_torch.bat"
         script_content = f"@echo off\n{command}\n"
     else:
         print(f"Unsupported OS: {os_type}")
         sys.exit(1)
 
-    with open(script_name, 'w', encoding="utf-8") as file:
+    with open(script_name, "w", encoding="utf-8") as file:
         file.write(script_content)
 
 

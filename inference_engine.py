@@ -83,7 +83,7 @@ def load_model(new_model, queue):
     - new_model: The new model to load, a path to a directory
     - queue: The queue which we will return the new model and tokenizer through
     """
-    torch.set_default_tensor_type('torch.cuda.FloatTensor' if nvidia() is True else 'torch.FloatTensor')
+    torch.set_default_tensor_type("torch.cuda.FloatTensor" if nvidia() is True else "torch.FloatTensor")
     ps = ProgramSettings()
     log(f"Loading model {new_model}...")
     if os.path.exists(new_model):

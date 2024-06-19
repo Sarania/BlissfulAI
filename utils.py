@@ -70,7 +70,7 @@ def get_cpu_name():
     """
     if platform.system() == "Windows":
         try:
-            cpu_name = subprocess.check_output("wmic cpu get name", stderr=subprocess.STDOUT).decode().strip().split('\n')[1].strip()
+            cpu_name = subprocess.check_output("wmic cpu get name", stderr=subprocess.STDOUT).decode().strip().split("\n")[1].strip()
             return cpu_name
         except subprocess.CalledProcessError as e:
             return "Could not fetch CPU name: " + str(e)
@@ -91,7 +91,7 @@ def get_gpu_info():
     all_info = None
     if platform.system() == "Windows":
         try:
-            all_info = subprocess.check_output(["wmic", "path", "win32_videocontroller", "get", "name"], stderr=subprocess.STDOUT).decode().strip().split('\n')[1:]
+            all_info = subprocess.check_output(["wmic", "path", "win32_videocontroller", "get", "name"], stderr=subprocess.STDOUT).decode().strip().split("\n")[1:]
             for info in all_info:
                 if info:  # Avoid adding empty lines
                     gpu_names.append(info.strip())
@@ -100,10 +100,10 @@ def get_gpu_info():
             return ["Could not fetch GPU names: " + str(e)]
     elif platform.system() == "Linux":
         try:
-            all_info = subprocess.check_output("lspci | grep 'VGA'", shell=True).decode().strip().split('\n')
+            all_info = subprocess.check_output("lspci | grep 'VGA'", shell=True).decode().strip().split("\n")
         except subprocess.CalledProcessError:
             try:
-                all_info = subprocess.check_output("lspci | grep '3D'", shell=True).decode().strip().split('\n')
+                all_info = subprocess.check_output("lspci | grep '3D'", shell=True).decode().strip().split("\n")
             except subprocess.CalledProcessError:
                 pass
         if all_info:
