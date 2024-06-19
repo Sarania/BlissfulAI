@@ -23,7 +23,6 @@ Created on Mon Mar 4 12:00:00 2024
 @author: Blyss Sarania
 """
 import signal
-import io
 import os
 import sys
 import gc
@@ -37,9 +36,8 @@ from datetime import datetime
 from queue import Queue
 import webbrowser
 import PySimpleGUI as sg
-from PIL import Image
 from inference_engine import threaded_model_response, load_model
-from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version
+from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, load_image
 from singletons import AI, ProgramSettings
 import torch
 if sys.platform == "win32":
@@ -302,8 +300,9 @@ def handle_edit_event():
                       "stm_size", "ltm_size", "length_penalty", "num_beams", "num_keywords", "repetition_penalty")
     edit_window = create_edit_window()
     valid_values = ai.personality_definition
+    old_browse = None
     while True:
-        event, values = edit_window.read()
+        event, values = edit_window.read(timeout=200)
         if event in (sg.WIN_CLOSED, "Cancel"):
             edit_window.close()
             return False
@@ -317,6 +316,8 @@ def handle_edit_event():
             # Update system_messages with the new contents
             system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
             ai.system_memory = system_messages
+            if os.path.exists(values["-BROWSE-"]):
+                shutil.copy(values["-BROWSE-"], os.path.join(ai.personality_path, "default.png"))
             update_hard_memory()
             edit_window.close()
             return True
@@ -328,6 +329,13 @@ def handle_edit_event():
                 else:
                     ttu = type(ai.personality_definition[event])
                     valid_values[event] = ttu(values[event])
+        elif values["-BROWSE-"] is not None:  # Update the avatar image
+            browse = values["-BROWSE-"]
+            if browse != old_browse:
+                if os.path.exists(browse):
+                    avatar = load_image(browse, 256, 256)
+                    edit_window["-AVATAR-"].update(data=avatar)
+            old_browse = browse
 
 
 def handle_create_event():
@@ -341,8 +349,9 @@ def handle_create_event():
                       "stm_size", "ltm_size", "length_penalty", "num_beams", "num_keywords", "repetition_penalty")
     window = create_edit_window()
     valid_values = ai.personality_definition
+    old_browse = None
     while True:
-        event, values = window.read()
+        event, values = window.read(timeout=200)
         if event in (sg.WIN_CLOSED, "Cancel"):
             window.close()
             return False
@@ -363,6 +372,8 @@ def handle_create_event():
                 system_messages = [{"role": "system", "content": content} for content in edited_contents if content.strip()]
                 ai.system_memory = system_messages
                 ps.personality_status = "loaded"
+                if os.path.exists(values["-BROWSE-"]):
+                    shutil.copy(values["-BROWSE-"], os.path.join(ai.personality_path, "default.png"))
                 update_hard_memory()
                 window.close()
                 return True
@@ -374,6 +385,13 @@ def handle_create_event():
                 else:
                     ttu = type(ai.personality_definition[event])
                     valid_values[event] = ttu(values[event])
+        elif values["-BROWSE-"] is not None:  # Update the avatar image
+            browse = values["-BROWSE-"]
+            if browse != old_browse:
+                if os.path.exists(browse):
+                    avatar = load_image(browse, 256, 256)
+                    window["-AVATAR-"].update(data=avatar)
+            old_browse = browse
 
 
 def popup_message(message):
@@ -524,7 +542,8 @@ def create_edit_window():
             "num_keywords": "(num_keywords)(1+)(3) - Number of keywords extracted from the input for context searching.",
             "num_beams": "(num_beams)(1+)(1) - Number of alternatives explored for generating responses. Higher numbers increase response quality at the cost of speed and VRAM.",
             "persistent": "(persistent) - Whether the AI's conversation history is persistent across sessions.",
-            "messages_editor": "(system messages) - Defines the AI's personality"
+            "messages_editor": "(system messages) - Defines the AI's personality",
+            "-AVATAR-": "(Avatar) - Let's you choose a picture to represent the AI"
         }
 
         window["explanation"].update(f"Help: {explanations[evname]}", text_color='green')
@@ -533,37 +552,49 @@ def create_edit_window():
     label_width = 20
     string_width = 16
     num_width = 16
+    avatar_path = os.path.join(ai.personality_path, "default.png")
+    if os.path.exists(avatar_path):
+        image_data = load_image(avatar_path, 256, 256)
+    else:
+        image_data = load_image("./resources/bai_icon_full_res.png", 256, 256)
     # System messages section
     # Serialize system_messages for editing
     editable_messages = "\n".join([msg["content"] for msg in ai.system_memory])
-    messages_editor = [[sg.Multiline(default_text=editable_messages, size=(120, 10), enable_events=True, key="messages_editor")]]
+    messages_editor = [[sg.Multiline(default_text=editable_messages, size=(80, 10), enable_events=True, key="messages_editor")]]
     # Update layout
     layout = [
-        [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
-        [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
-        [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
-        [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
-        [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
-        [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
-        [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
-        [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
-        [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
-        [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
-        [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
-        [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
-        [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
-        [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
-        [sg.Text("Help: (parameter)(range)(starter value)", size=(80, 1), key="expl", text_color="green")],
-        [sg.Text("Help: Explanations of parameters will appear here.", size=(80, 3), key="explanation", text_color="green")],
-        [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
-        [sg.Column(messages_editor, vertical_alignment="top")],
-        [sg.Button("Save"), sg.Button("Cancel")]
+        [sg.Column([
+            [sg.Image(data=image_data, key='-AVATAR-', size=(256, 256))],
+            [sg.Push(), sg.FileBrowse('Choose Avatar', key='-BROWSE-', file_types=(("Image Files", "*.png *.jpg *.jpeg"),)), sg.Push()]
+        ], vertical_alignment='top'),
+
+            sg.Column([
+                [sg.Text("Parameter:", size=(label_width, 1)), sg.Text("Value:", size=(14, 1)), sg.Text("Use?", size=(label_width, 1))],
+                [sg.Text("Name", size=(label_width, 1)), sg.InputText(ai.personality_definition["name"], key="name", size=(string_width, 1), enable_events=True), sg.Text("")],
+                [sg.Text("Top P", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_p"], key="top_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_p_enable"], key="top_p_enable")],
+                [sg.Text("Typical P", size=(label_width, 1)), sg.InputText(ai.personality_definition["typical_p"], key="typical_p", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["typical_p_enable"], key="typical_p_enable")],
+                [sg.Text("Top K", size=(label_width, 1)), sg.InputText(ai.personality_definition["top_k"], key="top_k", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["top_k_enable"], key="top_k_enable")],
+                [sg.Text("Temperature", size=(label_width, 1)), sg.InputText(ai.personality_definition["temperature"], key="temperature", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["temperature_enable"], key="temperature_enable")],
+                [sg.Text("Length Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["length_penalty"], key="length_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["length_penalty_enable"], key="length_penalty_enable")],
+                [sg.Text("Repetition Penalty", size=(label_width, 1)), sg.InputText(ai.personality_definition["repetition_penalty"], key="repetition_penalty", size=(num_width, 1), enable_events=True), sg.Checkbox("", default=ai.personality_definition["repetition_penalty_enable"], key="repetition_penalty_enable")],
+                [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
+                [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
+                [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
+                [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
+                [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
+                [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
+                [sg.Text("Help: (parameter)(range)(starter value)", size=(80, 1), key="expl", text_color="green")],
+                [sg.Text("Help: Explanations of parameters will appear here when clicked.", size=(80, 3), key="explanation", text_color="green")],
+                [sg.Text("System Messages:", font=("Helvetica", 12, "underline"))],
+                [sg.Column(messages_editor, vertical_alignment="top")],
+                [sg.Button("Save"), sg.Button("Cancel")]
+            ])]
     ]
     event_names = [
         "name", "top_p", "typical_p", "top_k", "temperature",
         "length_penalty", "repetition_penalty", "response_length",
         "stm_size", "ltm_size", "num_keywords", "num_beams",
-        "persistent", "messages_editor"
+        "persistent", "messages_editor", "-AVATAR-"
     ]
     window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon=GLOBAL_ICON)
 
@@ -841,11 +872,7 @@ def create_chat_window():
     c_right_click_menu = ["", ["Copy "]]
     ccp_right_click_menu = ["", ["Copy", "Cut", "Paste"]]
     avatar_path = "./resources/bai_icon_full_res.png"
-    avatar = Image.open(avatar_path)
-    avatar.thumbnail((256, 256), Image.LANCZOS)
-    bio = io.BytesIO()
-    avatar.save(bio, format="PNG")
-    image_data = bio.getvalue()
+    image_data = load_image(avatar_path, 256, 256)
     layout = [
         [sg.Image(data=image_data, key="-IMAGE-"), sg.Multiline(size=(40, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
         [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True), sg.Button("Guidance"), sg.Button("Load Model"), sg.Button("Create Personality"), sg.Button("Load Personality"), sg.Button("Edit Personality"), sg.Button("Settings")],
@@ -976,13 +1003,9 @@ def load_personality(personality_path, window):
         ai.personality_path = personality_path
         avatar_path = os.path.join(personality_path, "default.png")
         if os.path.exists(avatar_path):
-            avatar = Image.open(avatar_path)
+            image_data = load_image(avatar_path, 256, 256)
         else:
-            avatar = Image.open("./resources/bai_icon_full_res.png")
-        avatar.thumbnail((256, 256), Image.LANCZOS)
-        bio = io.BytesIO()
-        avatar.save(bio, format="PNG")
-        image_data = bio.getvalue()
+            image_data = load_image("./resources/bai_icon_full_res.png", 256, 256)
         window["-IMAGE-"].update(image_data)
         ps.personality_status = "loaded"
     else:

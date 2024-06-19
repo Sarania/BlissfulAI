@@ -6,6 +6,7 @@ Created on Mon Mar 11 18:16:10 2024
 @author: Blyss Sarania
 """
 import os
+import io
 from datetime import datetime
 import time
 import hashlib
@@ -14,7 +15,29 @@ import platform
 import re
 import psutil
 import pynvml
+from PIL import Image
 import torch
+
+
+def load_image(filename, x_size, y_size):
+    """
+    Helper function to load an image for PSG
+
+    Parameters:
+    - filename: String, the image to load
+    - x_size: X dimension to scale image to
+    - y_size: Y dimension to scale image to
+
+    Returns:
+    - the image data
+
+    """
+    image = Image.open(filename)
+    image = image.resize((x_size, y_size), Image.LANCZOS)
+    bio = io.BytesIO()
+    image.save(bio, format="PNG")
+    image_data = bio.getvalue()
+    return image_data
 
 
 def get_os_name_and_version():
