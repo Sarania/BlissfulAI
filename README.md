@@ -3,6 +3,8 @@
 
 Welcome to **BlissfulAI**, a work in progress uncensored chatbot for LLMs.
 
+Update: July 7, 2024: I'm getting a more capable GPU next month so that I will be able to continue development on this project and add all the features and things I want! Stay tuned!
+
 <p align="center">
   <img src="resources/screenshot.png" alt="Example interaction"/>
 </p>
