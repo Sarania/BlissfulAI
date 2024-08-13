@@ -872,7 +872,6 @@ def create_chat_window():
     Returns:
     - window: A handle to the created window
     """
-    width, height = 1000, 500
     c_right_click_menu = ["", ["Copy "]]
     ccp_right_click_menu = ["", ["Copy", "Cut", "Paste"]]
     avatar_path = "./resources/bai_icon_full_res.png"
@@ -882,39 +881,20 @@ def create_chat_window():
             [
                 [sg.Image(data=image_data, key="-IMAGE-")],
                 [sg.Text("", key="-PERSONALITY_NAME-", justification="center", size=(24, 1), text_color="purple", font=("Arial", 14))]
-            ]
+            ],
+            element_justification='center'  # This will center all elements within the column
         ), sg.Multiline(size=(40, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
         [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True), sg.Button("Guidance"), sg.Button("Load Model"), sg.Button("Create Personality"), sg.Button("Load Personality"), sg.Button("Edit Personality"), sg.Button("Settings")],
-        [sg.Multiline(key="-INPUT-", size=(40, 3), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
+        [sg.Multiline(key="-INPUT-", size=(40, 6), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
         [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About")],
     ]
-    window = sg.Window("BlissfulAI", layout, resizable=True, finalize=True, size=(width, height), icon=GLOBAL_ICON)
+    window = sg.Window("BlissfulAI", layout, resizable=False, finalize=True, icon=GLOBAL_ICON)
     window["-INPUT-"].set_focus()
-    # Bind to the resize event
-    window.TKroot.bind("<Configure>", lambda event: enforce_minimum_size(window, width, height))
     window["-OUTPUT-"].Widget.config(selectbackground="#777777")
     window["-INPUT-"].Widget.config(selectbackground="#777777")
     output_widget = window["-OUTPUT-"].Widget
-
-    # Bind click event
     output_widget.bind("<Button-2>", lambda event: update_context_menu(event, window))
     return window
-
-
-def enforce_minimum_size(window, min_width, min_height):
-    """
-    Enforce the minimum size of the window.
-
-    Parameters:
-    - window: The window to enforce upon
-    - min_width: Don"t let the width be less than this
-    - min_height: Don"t let the height be less than this
-    """
-    width, height = window.size
-    if width < min_width or height < min_height:
-        new_width = max(width, min_width)
-        new_height = max(height, min_height)
-        window.TKroot.geometry(f"{new_width}x{new_height}")
 
 
 @timed_execution
