@@ -612,6 +612,7 @@ def create_settings_window():
             "-USERNAME-": "(Username) - What you wanna be called. Used in the chat log and certain templates.",
             "-BACKEND-": "(Backend) - The backend to run inferences on. 'auto' is best in most cases.",
             "-QUANTIZATION-": "(Model Quantization) - The quantization to load the model with. Saves VRAM at a slight cost to accuracy.",
+            "-DATATYPE-": "(Inference Datatype) - The datatype to use for inferencing, if unsure, use bfloat16.",
             "-TEMPLATE-": "(Model Template) - The template for formatting the model's input.",
             "-DEFAULT_MODEL_PATH-": "(Default Model) - The model to load on startup.",
             "-DEFAULT_PERSONALITY_PATH-": "(Default Personality) - The personality to load on startup.",
@@ -627,12 +628,14 @@ def create_settings_window():
     string_width = 36
     backend_options = ["cuda", "cpu", "auto"]
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
+    datatype_options = ["float16", "bfloat16", "float32"]
     template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
         [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="-USERNAME-", enable_events=True)],
         [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="-BACKEND-", readonly=True, enable_events=True)],
         [sg.Text("Model Quantization:", size=(label_width, 1)), sg.Combo(quant_options, default_value=ps.quant, key="-QUANTIZATION-", readonly=True, enable_events=True)],
         [sg.Text("Model Template:", size=(label_width, 1)), sg.Combo(template_options, default_value=ps.template, key="-TEMPLATE-", readonly=True, enable_events=True), sg.Checkbox("TRY to auto-select best", default=ps.auto_template, key="-AUTO_TEMPLATE_ENABLE-", enable_events=True)],
+        [sg.Text("Inference Datatype:", size=(label_width, 1)), sg.Combo(datatype_options, default_value=ps.datatype, key="-DATATYPE-", readonly=True, enable_events=True)],
         [sg.Text("Default Model:", size=(label_width, 1)), sg.Input(default_text=ps.default_model, enable_events=True, key="-DEFAULT_MODEL_PATH-", size=(string_width, 1)), sg.FolderBrowse("Browse", target="-DEFAULT_MODEL_PATH-")],
         [sg.Text("Default Personality:", size=(label_width, 1)), sg.Input(default_text=ps.default_personality, enable_events=True, key="-DEFAULT_PERSONALITY_PATH-", size=(string_width, 1)), sg.FolderBrowse("Browse", target="-DEFAULT_PERSONALITY_PATH-")],
         [sg.Text("Max History:", size=(label_width, 1)), sg.Slider(range=(100, 1000), orientation="h", size=(string_width, 10), default_value=ps.max_history, key="-MAX_HISTORY-", enable_events=True)],
@@ -642,7 +645,7 @@ def create_settings_window():
     ]
     window = sg.Window("Settings", layout, modal=True, icon=GLOBAL_ICON, finalize=True)
     event_names = [
-        "-USERNAME-", "-BACKEND-", "-QUANTIZATION-", "-TEMPLATE-", "-DEFAULT_MODEL_PATH-",
+        "-USERNAME-", "-BACKEND-", "-QUANTIZATION-", "-DATATYPE-", "-TEMPLATE-", "-DEFAULT_MODEL_PATH-",
         "-DEFAULT_PERSONALITY_PATH-", "-STREAM_ENABLE-", "-AUTO_TEMPLATE_ENABLE-", "-AUTOSAVE_ENABLE-",
         "-MAX_HISTORY-"
     ]
@@ -669,6 +672,7 @@ def handle_settings_event():
                 ps.model_status = "reload needed" if ps.quant != values["-QUANTIZATION-"] else ps.model_status
             ps.backend = values["-BACKEND-"]
             ps.quant = values["-QUANTIZATION-"]
+            ps.datatype = values["-DATATYPE-"]
             ps.default_model = values["-DEFAULT_MODEL_PATH-"]
             ps.default_personality = values["-DEFAULT_PERSONALITY_PATH-"]
             ps.do_stream = values["-STREAM_ENABLE-"]

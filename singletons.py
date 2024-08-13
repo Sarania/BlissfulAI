@@ -49,6 +49,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         """
         self._backend = "auto"  # The backend to use, saved to file
         self._quant = "None"  # The quantization to use, saved to file
+        self._datatype = "bfloat16"  # The datatype to use for inferencing, saved to file
         self._default_model = ""  # The model to load on startup, saved to file
         self._default_personality = ""  # The personality to load on startup, saved to file
         self._do_stream = False  # Whether or not to stream the generated text to stdout, saved to file
@@ -89,6 +90,20 @@ class ProgramSettings(metaclass=SingletonMeta):
             value: The new quantization setting value.
         """
         self._quant = value
+
+    @property
+    def datatype(self):
+        """Gets the current datatype setting."""
+        return self._datatype
+
+    @datatype.setter
+    def datatype(self, value):
+        """Sets the datatype setting.
+
+        Parameters:
+            value: The new datatype setting value.
+        """
+        self._datatype = value
 
     @property
     def default_model(self):
@@ -264,6 +279,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         data = {
             "_backend": self._backend,
             "_quant": self._quant,
+            "_datatype": self._datatype,
             "_default_model": self._default_model,
             "_default_personality": self._default_personality,
             "_do_stream": self._do_stream,
@@ -294,6 +310,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         default_settings = {
             "_backend": "auto",
             "_quant": "None",
+            "_datatype": "bfloat16",
             "_default_model": "",
             "_default_personality": "",
             "_do_stream": False,
@@ -319,6 +336,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         instance = cls()
         instance.backend = data.get("_backend", default_settings["_backend"])
         instance.quant = data.get("_quant", default_settings["_quant"])
+        instance.datatype = data.get("_datatype", default_settings["_datatype"])
         instance.default_model = data.get("_default_model", default_settings["_default_model"])
         instance.default_personality = data.get("_default_personality", default_settings["_default_personality"])
         instance.do_stream = data.get("_do_stream", default_settings["_do_stream"])
