@@ -4,6 +4,7 @@
 Welcome to **BlissfulAI**, a work in progress uncensored chatbot for LLMs.
 
 Update: July 7, 2024: I'm getting a more capable GPU next month so that I will be able to continue development on this project and add all the features and things I want! Stay tuned!
+Update: August 13, 2024: I got it baby! She's now the proud of owner of an RTX 4070 TiSu 16GB! Let the development begin!
 
 <p align="center">
   <img src="resources/screenshot.png" alt="Example interaction"/>
@@ -17,7 +18,7 @@ Update: July 7, 2024: I'm getting a more capable GPU next month so that I will b
 - Characters use a working memory system: a context sensitive combination of recent conversation(short term memory) and past conversations(long term memory).
 - Fully customizable, adaptable to different hardware configurations. Low VRAM? Limp by with a quantized 3 billion parameter model. Max VRAM? Run giant models that the rest of us can only dream about!
 - Live help system and solid default settings so you can jump right in!
-- Voices, personality traits, 3D character avatars and more are planned for the future!
+- Voices, personality traits, 3D character avatars, multimodal operation and more are planned for the future!
 - Fully open source, licensed under CC-BY-NC-SA!
 
 
