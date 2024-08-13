@@ -3,8 +3,9 @@
 
 Welcome to **BlissfulAI**, a work in progress uncensored chatbot for LLMs.
 
-Update: July 7, 2024: I'm getting a more capable GPU next month so that I will be able to continue development on this project and add all the features and things I want! Stay tuned!
-Update: August 13, 2024: I got it baby! She's now the proud of owner of an RTX 4070 TiSu 16GB! Let the development begin!
+* Update: August 13, 2024: I got it baby! She's now the proud of owner of an RTX 4070 TiSu 16GB! Let the development begin!
+
+* Update: July 7, 2024: I'm getting a more capable GPU next month so that I will be able to continue development on this project and add all the features and things I want! Stay tuned!
 
 <p align="center">
   <img src="resources/screenshot.png" alt="Example interaction"/>
