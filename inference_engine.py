@@ -85,16 +85,23 @@ def load_model(new_model, queue):
     """
     torch.set_default_tensor_type("torch.cuda.FloatTensor" if nvidia() is True else "torch.FloatTensor")
     ps = ProgramSettings()
+    datatype_mapping = {
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+        "float32": torch.float32,
+        "int8": torch.int8
+    }
+    inference_datatype = datatype_mapping[ps.datatype]
     log(f"Loading model {new_model}...")
     if os.path.exists(new_model):
         with torch.inference_mode():
             if ps.quant == "BNB 4bit":
                 log("Quantizing model to 4-bit with BNB...")
-                q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float32, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=False)
+                q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=False)
                 model = AutoModelForCausalLM.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
             elif ps.quant == "BNB 4bit+":
                 log("Quantizing model to 4-bit+ with BNB...")
-                q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True)
+                q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True)
                 model = AutoModelForCausalLM.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
             elif ps.quant == "BNB 8bit":
                 log("Quantizing model to 8-bit with BNB...")
@@ -102,11 +109,11 @@ def load_model(new_model, queue):
                 model = AutoModelForCausalLM.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
             else:
                 if ps.backend == "cuda":
-                    model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=torch.float16, low_cpu_mem_usage=True).to("cuda")
+                    model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=inference_datatype, low_cpu_mem_usage=True).to("cuda")
                 elif ps.backend == "cpu":
-                    model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=torch.float32, low_cpu_mem_usage=True).to("cpu")
+                    model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=inference_datatype, low_cpu_mem_usage=True).to("cpu")
                 elif ps.backend == "auto":
-                    model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=torch.float16, device_map="auto", low_cpu_mem_usage=True)
+                    model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=inference_datatype, device_map="auto", low_cpu_mem_usage=True)
             tokenizer = AutoTokenizer.from_pretrained(new_model, torch_dtype=torch.float16)
             streamer = TextStreamer(tokenizer)
         queue.put((model, tokenizer, streamer))

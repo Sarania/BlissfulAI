@@ -628,7 +628,7 @@ def create_settings_window():
     string_width = 36
     backend_options = ["cuda", "cpu", "auto"]
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
-    datatype_options = ["float16", "bfloat16", "float32"]
+    datatype_options = ["float16", "bfloat16", "float32", "int8"]
     template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
         [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="-USERNAME-", enable_events=True)],
@@ -669,7 +669,7 @@ def handle_settings_event():
             break
         if event == "Save":
             if ps.model_status != "unloaded":
-                ps.model_status = "reload needed" if ps.quant != values["-QUANTIZATION-"] else ps.model_status
+                ps.model_status = "reload needed" if ps.quant != values["-QUANTIZATION-"] or ps.datatype != values["-DATATYPE-"] else ps.model_status
             ps.backend = values["-BACKEND-"]
             ps.quant = values["-QUANTIZATION-"]
             ps.datatype = values["-DATATYPE-"]
