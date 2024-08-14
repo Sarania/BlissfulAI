@@ -83,6 +83,7 @@ def load_model(new_model, queue):
     - new_model: The new model to load, a path to a directory
     - queue: The queue which we will return the new model and tokenizer through
     """
+    model_class = AutoModelForCausalLM
     torch.set_default_tensor_type("torch.cuda.FloatTensor" if nvidia() is True else "torch.FloatTensor")
     ps = ProgramSettings()
     datatype_mapping = {
@@ -92,60 +93,29 @@ def load_model(new_model, queue):
         "int8": torch.int8
     }
     inference_datatype = datatype_mapping[ps.datatype]
+    quant_mapping = {
+        "BNB 4bit": BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=False),
+        "BNB 4bit+": BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True),
+        "BNB 8bit": BitsAndBytesConfig(load_in_8bit=True, llm_int8_threshold=5.0, llm_int8_enable_fp32_cpu_offload=True)
+    }
     log(f"Loading model {new_model}...")
     if os.path.exists(new_model):
         with torch.inference_mode():
             multimodalness = check_model_config(new_model)
-            log(f"Multimodalness: {multimodalness}")
             if multimodalness is False:
                 log("Loading single mode model...")
-                if ps.quant == "BNB 4bit":
-                    log("Quantizing model to 4-bit with BNB...")
-                    q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=False)
-                    model = AutoModelForCausalLM.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
-                elif ps.quant == "BNB 4bit+":
-                    log("Quantizing model to 4-bit+ with BNB...")
-                    q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True)
-                    model = AutoModelForCausalLM.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
-                elif ps.quant == "BNB 8bit":
-                    log("Quantizing model to 8-bit with BNB...")
-                    q_config = BitsAndBytesConfig(load_in_8bit=True, llm_int8_threshold=5.0, llm_int8_enable_fp32_cpu_offload=True)
-                    model = AutoModelForCausalLM.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
-                else:
-                    if ps.backend == "cuda":
-                        model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=inference_datatype, low_cpu_mem_usage=True).to("cuda")
-                    elif ps.backend == "cpu":
-                        model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=inference_datatype, low_cpu_mem_usage=True).to("cpu")
-                    elif ps.backend == "auto":
-                        model = AutoModelForCausalLM.from_pretrained(new_model, torch_dtype=inference_datatype, device_map="auto", low_cpu_mem_usage=True)
-                tokenizer = AutoTokenizer.from_pretrained(new_model, torch_dtype=torch.float16)
-                streamer = TextStreamer(tokenizer)
-                queue.put((model, tokenizer, streamer, None))
             else:
-                log("Loading multi-mode model...")
-                if ps.quant == "BNB 4bit":
-                    log("Quantizing model to 4-bit with BNB...")
-                    q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=False)
-                    model = LlavaNextForConditionalGeneration.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
-                elif ps.quant == "BNB 4bit+":
-                    log("Quantizing model to 4-bit+ with BNB...")
-                    q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True)
-                    model = LlavaNextForConditionalGeneration.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
-                elif ps.quant == "BNB 8bit":
-                    log("Quantizing model to 8-bit with BNB...")
-                    q_config = BitsAndBytesConfig(load_in_8bit=True, llm_int8_threshold=5.0, llm_int8_enable_fp32_cpu_offload=True)
-                    model = LlavaNextForConditionalGeneration.from_pretrained(new_model, quantization_config=q_config, low_cpu_mem_usage=True)
-                else:
-                    if ps.backend == "cuda":
-                        model = LlavaNextForConditionalGeneration.from_pretrained(new_model, torch_dtype=inference_datatype, low_cpu_mem_usage=True).to("cuda")
-                    elif ps.backend == "cpu":
-                        model = LlavaNextForConditionalGeneration.from_pretrained(new_model, torch_dtype=inference_datatype, low_cpu_mem_usage=True).to("cpu")
-                    elif ps.backend == "auto":
-                        model = LlavaNextForConditionalGeneration.from_pretrained(new_model, torch_dtype=inference_datatype, device_map="auto", low_cpu_mem_usage=True)
-                processor = LlavaNextProcessor.from_pretrained(new_model, torch_dtype=torch.float16)
-                tokenizer = processor.tokenizer
-                streamer = TextStreamer(tokenizer)
-                queue.put((model, tokenizer, streamer, processor))
+                log("Loading multi mode model...")
+                model_class = LlavaNextForConditionalGeneration
+            if ps.quant != "None":
+                log(f"Quantizing model to {ps.quant}...")
+                model = model_class.from_pretrained(new_model, quantization_config=quant_mapping[ps.quant], low_cpu_mem_usage=True)
+            else:
+                model = model_class.from_pretrained(new_model, torch_dtype=inference_datatype, device_map="auto", low_cpu_mem_usage=True) if ps.backend == "auto" else model_class.from_pretrained(new_model, torch_dtype=inference_datatype, low_cpu_mem_usage=True).to(ps.backend)
+            processor = LlavaNextProcessor.from_pretrained(new_model, torch_dtype=torch.float16) if multimodalness is True else None
+            tokenizer = AutoTokenizer.from_pretrained(new_model, torch_dtype=torch.float16) if multimodalness is False else processor.tokenizer
+            streamer = TextStreamer(tokenizer)
+            queue.put((model, tokenizer, streamer, processor))
     else:
         log(f"Model path not found: {new_model}")
         ps.model_status = "unloaded"

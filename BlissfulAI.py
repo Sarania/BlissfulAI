@@ -690,7 +690,7 @@ def handle_settings_event():
             break
         if event == "Save":
             if ps.model_status != "unloaded":
-                ps.model_status = "reload needed" if ps.quant != values["-QUANTIZATION-"] or ps.datatype != values["-DATATYPE-"] else ps.model_status
+                ps.model_status = "reload needed" if ps.quant != values["-QUANTIZATION-"] or ps.datatype != values["-DATATYPE-"] or ps.backend != values["-BACKEND-"] else ps.model_status
             ps.backend = values["-BACKEND-"]
             ps.quant = values["-QUANTIZATION-"]
             ps.datatype = values["-DATATYPE-"]
