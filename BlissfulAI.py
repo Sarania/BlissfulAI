@@ -66,6 +66,7 @@ class LanguageModel():
         self._model = None
         self._model_path = None
         self._tokenizer = None
+        self._processor = None
         self._streamer = None
 
     @property
@@ -142,6 +143,26 @@ class LanguageModel():
         if value is not None and not hasattr(value, "encode"):
             raise ValueError("tokenizer must have an encode method")
         self._tokenizer = value
+
+    @property
+    def processor(self):
+        """
+        Gets the processor associated with the language model.
+
+        Returns:
+            The processor object if it exists else None
+        """
+        return self._processor
+
+    @processor.setter
+    def processor(self, value):
+        """
+        Sets the processor associated with the language model.
+
+        Args:
+            value: The new processor to set
+        """
+        self._processor = value
 
     @property
     def streamer(self):
@@ -1122,7 +1143,7 @@ def main():
 
         # Retrieve the model or response if it's sitting in queue
         if not model_queue.empty():
-            llm.model, llm.tokenizer, llm.streamer = model_queue.get()
+            llm.model, llm.tokenizer, llm.streamer, llm.processor = model_queue.get()
             ps.model_status = "ready"
             window["-NOTICE-"].update("")  # Clear the loading notice
 
