@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 from collections import OrderedDict
 import json
-from utils import timed_execution, log, generate_hash, nvidia
+from utils import timed_execution, log, generate_hash, nvidia, check_model_config
 from singletons import AI, ProgramSettings
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextStreamer
 import torch
@@ -95,6 +95,7 @@ def load_model(new_model, queue):
     log(f"Loading model {new_model}...")
     if os.path.exists(new_model):
         with torch.inference_mode():
+            log(f"Multimodalness: {check_model_config(new_model)}")
             if ps.quant == "BNB 4bit":
                 log("Quantizing model to 4-bit with BNB...")
                 q_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=inference_datatype, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=False)

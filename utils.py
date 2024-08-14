@@ -10,6 +10,7 @@ import io
 from datetime import datetime
 import time
 import hashlib
+import json
 import subprocess
 import platform
 import re
@@ -17,6 +18,48 @@ import psutil
 import pynvml
 from PIL import Image
 import torch
+
+
+def check_model_config(model_path):
+    """
+    Check the model's configuration file to determine if it is a multimodal model.
+
+    Parameters:
+    model_path (str): The path to the model directory containing the config.json file.
+
+    Returns:
+    bool: True if the model is multimodal, False otherwise.
+
+    Raises:
+    FileNotFoundError: If the config.json file is not found in the specified model directory.
+    """
+    # Define the path to the config.json file
+    config_path = os.path.join(model_path, "config.json")
+
+    # Check if config.json exists
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Config file not found at {config_path}")
+
+    # Open and read the config.json file
+    with open(config_path, 'r', encoding="utf-8") as config_file:
+        config_data = json.load(config_file)
+
+    # Search for occurrences of "vision" or "image"
+    occurrences = 0
+    for key, value in config_data.items():
+        if "vision" in key.lower() or "image" in key.lower():
+            occurrences += 1
+
+        # If the value is a dictionary, check inside it as well
+        if isinstance(value, dict):
+            for sub_key in value:
+                if "vision" in sub_key.lower() or "image" in sub_key.lower():
+                    occurrences += 1
+
+    # Set the multimodal flag based on occurrences
+    multimodal = occurrences > 3
+
+    return multimodal
 
 
 def load_image(filename, x_size, y_size):
