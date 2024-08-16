@@ -101,8 +101,8 @@ def load_model(new_model, queue):
     log(f"Loading model {new_model}...")
     if os.path.exists(new_model):
         with torch.inference_mode():
-            multimodalness = check_model_config(new_model)
-            if multimodalness is False:
+            ps.multimodalness = check_model_config(new_model)
+            if ps. multimodalness is False:
                 log("Loading single mode model...")
             else:
                 log("Loading multi mode model...")
@@ -112,8 +112,8 @@ def load_model(new_model, queue):
                 model = model_class.from_pretrained(new_model, quantization_config=quant_mapping[ps.quant], low_cpu_mem_usage=True)
             else:
                 model = model_class.from_pretrained(new_model, torch_dtype=inference_datatype, device_map="auto", low_cpu_mem_usage=True) if ps.backend == "auto" else model_class.from_pretrained(new_model, torch_dtype=inference_datatype, low_cpu_mem_usage=True).to(ps.backend)
-            processor = LlavaNextProcessor.from_pretrained(new_model, torch_dtype=torch.float16) if multimodalness is True else None
-            tokenizer = AutoTokenizer.from_pretrained(new_model, torch_dtype=torch.float16) if multimodalness is False else processor.tokenizer
+            processor = LlavaNextProcessor.from_pretrained(new_model, torch_dtype=torch.float16) if ps.multimodalness is True else None
+            tokenizer = AutoTokenizer.from_pretrained(new_model, torch_dtype=torch.float16) if ps.multimodalness is False else processor.tokenizer
             streamer = TextStreamer(tokenizer)
             queue.put((model, tokenizer, streamer, processor))
     else:
@@ -427,6 +427,8 @@ def post_process(input_string, llm, response_start):
             elif input_string.find("\nUSER:") != -1:
                 applied_template = "Synthia"
                 end_tags = ["\nUSER:"]
+            else:
+                raise ValueError("Could not determine template style from input for text processing!")
             log(f"Best guess template: {applied_template}")
         else:
             if template == "BAI SynthIA":

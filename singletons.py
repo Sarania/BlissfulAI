@@ -52,6 +52,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._datatype = "bfloat16"  # The datatype to use for inferencing, saved to file
         self._default_model = ""  # The model to load on startup, saved to file
         self._default_personality = ""  # The personality to load on startup, saved to file
+        self._multimodalness = False  # Whether the model is single or multi mode, not saved
         self._do_stream = False  # Whether or not to stream the generated text to stdout, saved to file
         self._autosave = True  # Whether or not to autosave the personality every minute, saved to file
         self._model_status = "unloaded"  # Current status of the model, not saved
@@ -136,6 +137,22 @@ class ProgramSettings(metaclass=SingletonMeta):
         if not os.path.exists(value):
             log("Specified personality path does not exist!")
         self._default_personality = value
+
+    @property
+    def multimodalness(self):
+        """Gets the multimodalness of the model"""
+        return self._multimodalness
+
+    @multimodalness.setter
+    def multimodalness(self, value):
+        """Sets the multimodalness variable representing the loaded model.
+
+        Parameters:
+            value: The new value.
+        """
+        if not isinstance(value, bool):
+            log("Multimodalness must be BOOL!")
+        self._multimodalness = value
 
     @property
     def do_stream(self):
