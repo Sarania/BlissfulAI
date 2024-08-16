@@ -5,13 +5,39 @@ Created on Wed Mar 27 13:29:47 2024
 
 @author: Blyss Sarania
 """
+import os
+import site
+import zipfile
 import sys
 import platform
 from singletons import ProgramSettings
+
+# Here we are going to extract the last LGPL version of PySimpleGUI into the venv
+print("\033[93mNotice:\033[0m Extracting PySimpleGUI into the virtual environment. PySimpleGUI is NOT part of the BlissfulAI project and is included separately under the terms of the LGPLv3!")
+print("Please see inside the archive for a copy of the LGPLv3 as such!")
+zip_path = "PySimpleGUI_4_60_5.zip"
+# Find the site-packages directory
+site_packages_dir = site.getsitepackages()[0]  # This should give the correct site-packages directory
+
+# Check if the ZIP file exists
+if not os.path.exists(zip_path):
+    print("\033[91mError\033[0m: ZIP file does not exist.")
+    sys.exit(4)
+
+# Extract the ZIP file
+with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    zip_ref.extractall(site_packages_dir)
+    print(f"Extracted {zip_path} to {site_packages_dir}")
+
 try:
     import PySimpleGUI as sg
 except ImportError:
-    sys.exit(1)
+    print("\033[91mError\033[0m: Wasn't able to import PySimpleGUI! If on Linux, this is likely because tkinter is not present.")
+    print("Please ensure tkinter is installed for your system.")
+    print("On Ubuntu/Debian: sudo apt-get install python3-tk")
+    print("On Fedora: sudo dnf install python3-tkinter")
+    print("On Arch Linux: sudo pacman -S tk")
+    sys.exit(9)
 
 
 def create_setup_window(os_type):
@@ -50,6 +76,7 @@ def handle_setup_event(os_type):
         event, values = settings_window.read(timeout=50)
         if event in (sg.WIN_CLOSED, "Cancel"):
             settings_window.close()
+            print("\033[93mUser cancelled installation!\033[0m")
             sys.exit(2)
         if event == "Save":
             ps.username = values["username"]
@@ -81,11 +108,12 @@ def main():
         script_name = "install_torch.bat"
         script_content = f"@echo off\n{command}\n"
     else:
-        print(f"Unsupported OS: {os_type}")
-        sys.exit(1)
+        print(f"\033[91mUnsupported OS\033[0m: {os_type}")
+        sys.exit(8)
 
     with open(script_name, "w", encoding="utf-8") as file:
         file.write(script_content)
+        sys.exit(0)
 
 
 if __name__ == "__main__":

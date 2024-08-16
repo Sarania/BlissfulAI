@@ -14,18 +14,11 @@ else
     source ./venv/bin/activate
     echo "Updating pip..."
     python -m pip install --upgrade pip
-    echo "Installing setup requirements..."
-    pip install -r setup_requirements.txt
 
     echo "Running easy_setup.py..."
     if ! python easy_setup.py; then
-        echo "It seems like there's a problem with your setup, possibly related to tkinter."
-        echo "Please ensure tkinter is installed for your system."
-        echo "On Ubuntu/Debian: sudo apt-get install python3-tk"
-        echo "On Fedora: sudo dnf install python3-tkinter"
-        echo "On Arch Linux: sudo pacman -S tk"
-        echo "Then run the script again."
-        echo "Removing venv..."
+        echo "Installation failed or was cancelled!"
+        echo "Deactivating and removing venv..."
         deactivate
         rm -rf ./venv
         # Exit the script if easy_setup.py fails
