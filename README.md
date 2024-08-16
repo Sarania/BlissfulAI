@@ -15,11 +15,12 @@ Welcome to **BlissfulAI**, a work in progress uncensored chatbot for LLMs.
 
 - Uncensored character driven interactive chat powered by large language models!
 - Create customized characters and then interact with them! Any character you like! They can be your friend, your mentor, your lover, your advisor, and so much more!
+- Fully local operation - no Internet connection required to interact with your AI friend! All of your data and conversations stay on YOUR machine so YOU are in control.
 - Characters develop from their interactions with you!
 - Characters use a working memory system: a context sensitive combination of recent conversation(short term memory) and past conversations(long term memory).
 - Fully customizable, adaptable to different hardware configurations. Low VRAM? Limp by with a quantized 3 billion parameter model. Max VRAM? Run giant models that the rest of us can only dream about!
 - Live help system and solid default settings so you can jump right in!
-- Voices, personality traits, 3D character avatars, multimodal operation and more are planned for the future!
+- Voices, 3D character avatars, multimodal operation and more are planned for the future!
 - Fully open source, licensed under CC-BY-NC-SA!
 
 
