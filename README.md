@@ -77,6 +77,9 @@ Different LLMs expect their inputs to be formatted in different ways. Templates 
 - The character chat logs and parameters are just formatted JSON files. You can edit them freely but editing the messages themselves, the timestamp or the fingerprint WILL cause the memory integrity check to fail. Just click "Fix" when it happens and you'll be good!
 - The difference between "BNB 4 bit" and "BNB 4 bit+" is that the latter does an extra quantization step to save a tiny bit more VRAM!
 
+## Notice:
+BlissfulAI currently relies on the PySimpleGUI framework, unfortunately. Due to a significant shift in licensing by the original developers, which included attempts to erase all freely available versions from the internet, we include an archive of the last LGPL version of PySimpleGUI with BlissfulAI. This library is extracted into the virtual environment during the installation process and is included strictly under the terms of the LGPL v3.0. This component is NOT part of the BlissfulAI project itself. A copy of the LGPL license is also included within the PySimpleGUI archive for full compliance and transparency.
+
 ### Personal Data Warning:
 
 BlissfulAI is a work in progress and receives a lot of updates. Also, I am not perfect(far from it!). At the same time, it's quite possible to develop intense emotional attachments to the AI characters one interacts with. For this reason, if you have a character you like, it is **STRONGLY** recommended you make a backup of the characters folder from time to time so that they don't get taken out from a bug! Because of the way LLM's and BlissfulAI work, ultimately the interactions you have with the characters you create form their personality. So if you lose those chat logs, even if you recreate everything else it won't be the same!
