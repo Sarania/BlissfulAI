@@ -305,15 +305,13 @@ def update_main_window(window):
             sender_role = message["role"]
             sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
             sender_color = "purple" if sender_role == "assistant" else "blue"
+            text_color = "black"
             if ai.core_memory[i]["rating"] == "+":
-                window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
-                window["-OUTPUT-"].print(current_message, text_color="green", end="\n")
+                text_color = "green"
             elif ai.core_memory[i]["rating"] == "-":
-                window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
-                window["-OUTPUT-"].print(current_message, text_color="red", end="\n")
-            else:
-                window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
-                window["-OUTPUT-"].print(current_message, text_color="black", end="\n")
+                text_color = "red"
+            window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
+            window["-OUTPUT-"].print(current_message, text_color=text_color, end="\n")
 
 
 def handle_edit_event():
