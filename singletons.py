@@ -62,7 +62,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._special = ""  # Special command, not saved
         self._auto_template = False  # Whether to try to use BAI auto templating. Saved to file
         self._max_history = 200  # The max history to display in the chat window, saved to file
-        self._VERSION = "1.2.0"  # Program version
+        self._VERSION = "1.3.0"  # Program version
 
     @property
     def backend(self):
