@@ -95,7 +95,7 @@ def get_os_name_and_version():
             major = "11"
         os_version = f"{major} Build {minor}"
         return os_name, os_version
-    elif os_name == "Linux":
+    if os_name == "Linux":
         try:
             import distro
             os_name = distro.name(pretty=True)

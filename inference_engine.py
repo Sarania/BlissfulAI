@@ -9,10 +9,10 @@ import random
 import re
 import gc
 import os
-from PIL import Image
 from datetime import datetime
 from collections import OrderedDict
 import json
+from PIL import Image
 from utils import timed_execution, log, generate_hash, nvidia, check_model_config
 from singletons import AI, ProgramSettings
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextStreamer, LlavaNextProcessor, LlavaNextForConditionalGeneration
@@ -171,64 +171,64 @@ def custom_template(llm):
     """
     ai = AI()
     ps = ProgramSettings()
-    cprompt = ""
+    templated_prompt = ""
     prompt = ai.working_memory
     if ps.auto_template is True:
         template = auto_detect_template(llm)
     else:
         template = ps.template
     if template == "HF Automatic":  # Use HF transformers build in apply_chat_template, doesn't always detect things properly
-        cprompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+        templated_prompt = llm.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
     elif template == "BAI Opus":
         for entry in ai.working_memory:
             if entry["role"] == "user":
-                cprompt += f"<|im_start|>text names= {ps.username}\n"
-                cprompt += entry["content"]
-                cprompt += "<|im_end|>\n"
+                templated_prompt += f"<|im_start|>text names= {ps.username}\n"
+                templated_prompt += entry["content"]
+                templated_prompt += "<|im_end|>\n"
             elif entry["role"] == "assistant":
-                cprompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
-                cprompt += entry["content"]
-                cprompt += "<|im_end|>\n"
+                templated_prompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
+                templated_prompt += entry["content"]
+                templated_prompt += "<|im_end|>\n"
             elif entry["role"] == "system":
-                cprompt += "<|im_start>|>system\n"
-                cprompt += entry["content"]
-                cprompt += "<|im_end|>\n"
-        cprompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
+                templated_prompt += "<|im_start>|>system\n"
+                templated_prompt += entry["content"]
+                templated_prompt += "<|im_end|>\n"
+        templated_prompt += f"<|im_start|>text names= {ai.personality_definition['name']}\n"
     elif template == "BAI SynthIA":
         for entry in prompt:
-            cprompt += entry["role"].upper() + ":\n"
-            cprompt += entry["content"] + "\n"
-        cprompt += "ASSISTANT:\n"
+            templated_prompt += entry["role"].upper() + ":\n"
+            templated_prompt += entry["content"] + "\n"
+        templated_prompt += "ASSISTANT:\n"
     elif template == "BAI Instruct":
         for entry in ai.system_memory:
-            cprompt += "[INST] "
-            cprompt += entry["content"]
-            cprompt += "[/INST]\n"
+            templated_prompt += "[INST] "
+            templated_prompt += entry["content"]
+            templated_prompt += "[/INST]\n"
         for entry in ai.working_memory:
             if entry["role"] == "user":
-                cprompt += "[INST] " + entry["content"] + "[/INST]"
+                templated_prompt += "[INST] " + entry["content"] + "[/INST]"
             if entry["role"] == "assistant":
-                cprompt += entry["content"] + "\n"
+                templated_prompt += entry["content"] + "\n"
     elif template == "BAI Zephyr":
         for entry in prompt:
-            cprompt += "<|" + entry["role"] + "|>\n"
-            cprompt += entry["content"] + "\n"
-        cprompt += "<|assistant|>"
+            templated_prompt += "<|" + entry["role"] + "|>\n"
+            templated_prompt += entry["content"] + "\n"
+        templated_prompt += "<|assistant|>"
     elif template == "BAI Alpaca":
-        cprompt += "### Instruction: \n"
+        templated_prompt += "### Instruction: \n"
         for entry in ai.system_memory:
-            cprompt += entry["content"] + "\n"
-        cprompt += "### Input: \n"
+            templated_prompt += entry["content"] + "\n"
+        templated_prompt += "### Input: \n"
         for entry in ai.working_memory:
             if entry["role"] == "user" and entry["content"] != "":
-                cprompt += f"{ps.username}: "
-                cprompt += entry["content"] + "\n"
+                templated_prompt += f"{ps.username}: "
+                templated_prompt += entry["content"] + "\n"
             if entry["role"] == "assistant":
-                cprompt += ai.personality_definition["name"] + ": "
-                cprompt += entry["content"] + "\n"
-        cprompt += "### Response: \n"
-    log(f"Templated prompt: {cprompt}")
-    return cprompt
+                templated_prompt += ai.personality_definition["name"] + ": "
+                templated_prompt += entry["content"] + "\n"
+        templated_prompt += "### Response: \n"
+    log(f"Templated prompt: {templated_prompt}")
+    return templated_prompt
 
 
 def generate_model_response(llm):
@@ -244,30 +244,29 @@ def generate_model_response(llm):
     if ps.backend in ["auto", "cuda"]:
         torch.cuda.empty_cache()
     gc.collect()
-    cprompt = custom_template(llm)
+    templated_prompt = custom_template(llm)
     log("Tokenizing...")
-    log("Hackishly finding where model response will start from working memory..")
-    prompt_encoded = llm.tokenizer.encode(cprompt)  # This extra tokenization and decode step is necessary to keep track of where the model's response actually starts after tokens are munged by the tokenizer.
+    log("Hackishly finding where model response will start from working memory by doing an extra encode/decode step...")
+    prompt_encoded = llm.tokenizer.encode(templated_prompt)
     prompt_decoded = llm.tokenizer.decode(prompt_encoded, skip_special_tokens=False)
     response_start = len(prompt_decoded)
     llm.tokenizer.pad_token = llm.tokenizer.eos_token
     if ps.multimodalness is False or ai.visual_memory is None:
         if ps.backend in ("cuda", "auto"):
             log("Prompt to cuda...")
-            encoded_inputs = llm.tokenizer(cprompt, return_tensors="pt", padding=True, truncation=True)
+            encoded_inputs = llm.tokenizer(templated_prompt, return_tensors="pt", padding=True, truncation=True)
             prompt = {"input_ids": encoded_inputs["input_ids"].to("cuda"), "attention_mask": encoded_inputs["attention_mask"].to("cuda")}
         else:
             log(f"Prompt to {ps.backend}...")
-            encoded_inputs = llm.tokenizer(cprompt, return_tensors="pt", padding=True, truncation=True)
+            encoded_inputs = llm.tokenizer(templated_prompt, return_tensors="pt", padding=True, truncation=True)
             prompt = {"input_ids": encoded_inputs["input_ids"].to(ps.backend), "attention_mask": encoded_inputs["attention_mask"].to(ps.backend)}
-    else:
+    else:  # We received a multimodal prompt so send it through the llava processor
         if ps.backend in ("cuda", "auto"):
             log("Prompt+image to cuda...")
-            prompt = llm.processor(images=ai.visual_memory, text=cprompt, return_tensors="pt", padding=True, truncation=True).to("cuda")
+            prompt = llm.processor(images=ai.visual_memory, text=templated_prompt, return_tensors="pt", padding=True, truncation=True).to("cuda")
         else:
             log(f"Prompt+image to {ps.backend}...")
-            prompt = llm.processor(images=ai.visual_memory, text=cprompt, return_tensors="pt", padding=True, truncation=True).to(ps.backend)
-
+            prompt = llm.processor(images=ai.visual_memory, text=templated_prompt, return_tensors="pt", padding=True, truncation=True).to(ps.backend)
 
     if any([ai.personality_definition["temperature_enable"], ai.personality_definition["top_k_enable"], ai.personality_definition["top_p_enable"], ai.personality_definition["typical_p_enable"], ai.personality_definition["repetition_penalty_enable"], ai.personality_definition["length_penalty_enable"]]):
         log("Using sampling...")

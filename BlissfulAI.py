@@ -377,7 +377,7 @@ def handle_create_event():
         if event in (sg.WIN_CLOSED, "Cancel"):
             window.close()
             return False
-        elif event == "Save":
+        if event == "Save":
             selected_folder = select_folder()
             if selected_folder != "":
                 current_dir = selected_folder
