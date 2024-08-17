@@ -175,6 +175,28 @@ def generate_hash(content):
     return hash_obj.hexdigest()
 
 
+def generate_image_hash(filename):
+    """
+    Generate a SHA-256 hash of the contents of an image file.
+
+    Parameters:
+    - filename: String, the filename of the image we wanna hash.
+
+    Returns:
+    - the hash
+    """
+    hash_sha256 = hashlib.sha256()  # Create a new SHA-256 hash object
+
+    with open(filename, 'rb') as f:  # Open the file in binary read mode
+        while True:
+            data = f.read(65536)  # Read in 64k chunks
+            if not data:
+                break
+            hash_sha256.update(data)  # Update the hash with the chunk of data
+
+    return hash_sha256.hexdigest()  # Return the hexadecimal digest of the hash
+
+
 def log(input_string):
     """
     Logs the string to the logfile

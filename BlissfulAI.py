@@ -24,6 +24,7 @@ Created on Mon Mar 4 12:00:00 2024
 """
 import signal
 import os
+import re
 import sys
 import gc
 import json
@@ -37,7 +38,7 @@ from queue import Queue
 import webbrowser
 import PySimpleGUI as sg
 from inference_engine import threaded_model_response, load_model
-from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, load_image
+from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, generate_image_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, load_image
 from singletons import AI, ProgramSettings
 import torch
 if sys.platform == "win32":
@@ -907,7 +908,7 @@ def create_chat_window():
         ), sg.Multiline(size=(40, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
         [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True), sg.Button("Guidance"), sg.Button("Load Model"), sg.Button("Create Personality"), sg.Button("Load Personality"), sg.Button("Edit Personality"), sg.Button("Settings")],
         [sg.Multiline(key="-INPUT-", size=(40, 6), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
-        [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About")],
+        [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About"), sg.Button("Attach")],
     ]
     window = sg.Window("BlissfulAI", layout, resizable=False, finalize=True, icon=GLOBAL_ICON)
     window["-INPUT-"].set_focus()
@@ -916,6 +917,23 @@ def create_chat_window():
     output_widget = window["-OUTPUT-"].Widget
     output_widget.bind("<Button-2>", lambda event: update_context_menu(event, window))
     return window
+
+
+def handle_attach_event(window, current_input):
+    """
+    Handles attaching files into the chatbox
+    """
+    file_types = [("Image Files", "*.png *.jpg *.jpeg *.gif")]
+    filename = sg.popup_get_file('Select an image file', file_types=file_types, no_window=True)
+    if filename:
+        log(f"Image file selected: {filename}")
+        # Update the text box
+        current_text = current_input  # Get the current content of the Multiline
+        new_text = current_text + f" <image:{filename}> "  # Append the <image> tag
+        window["-INPUT-"].update(new_text)  # Update the Multiline with the new content
+        log("Image inserted into message! Note when message is submitted, image will be converted to a flashbulb memory and copied into AI's personality folder!")
+    else:
+        log("No image file selected!")
 
 
 @timed_execution
@@ -1158,8 +1176,26 @@ def main():
             if ps.personality_status == "loaded":
                 if ps.model_status == "ready":
                     user_message = values["-INPUT-"]
-                    window["-INPUT-"].update("")  # Clear the input field
+                    window["-INPUT-"].update("")
                     log("User message: " + user_message)
+                    if ps.multimodalness is True:
+                        image_path_pattern = r"<image:(.+?)>"
+                        matches = re.search(image_path_pattern, user_message)
+                        if matches:
+                            log("Detected image attachment, converting to flashbulb memory...")
+                            image_path = matches.group(1)
+                            log(f"Image path extracted: {image_path}")
+                            # Create resource locator from checksum
+                            image_hash = generate_image_hash(image_path)
+                            _, ext = os.path.splitext(image_path)
+                            # Construct new filename with hash and original extension, and copy the file into the AI folder
+                            new_filename = f"{image_hash}{ext}"
+                            new_message_tag = f"<image:{new_filename}>"
+                            destination_path = os.path.join(ai.personality_path, new_filename)
+                            # Copy the file to the new location
+                            shutil.copy(image_path, destination_path)
+                            user_message = re.sub(image_path_pattern, new_message_tag, user_message)
+                            log(f"User message updated: {user_message}")
                     ps.model_status = "inferencing"
                     threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response, update_window), daemon=True).start()
                 elif ps.model_status in ["inferencing", "loading"]:
@@ -1169,6 +1205,8 @@ def main():
                     popup_message("Please load a model first!")
             else:
                 popup_message("No personality to send a message to, silly!")
+        elif event == "Attach":
+            handle_attach_event(window, values["-INPUT-"])  # Attach an image
         elif event == "Guidance":
             create_guidance_message()
         # Check if the model is busy and if not, (hopefully) unload the previous model and then start a thread to load the new model

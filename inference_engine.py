@@ -6,8 +6,10 @@ Created on Mon Mar 11 18:27:45 2024
 @author: Blyss Sarania
 """
 import random
+import re
 import gc
 import os
+from PIL import Image
 from datetime import datetime
 from collections import OrderedDict
 import json
@@ -133,6 +135,7 @@ def threaded_model_response(llm, user_message, model_response, update_window):
 
     """
     ai = AI()
+    ps = ProgramSettings()
     with torch.inference_mode():
         # Update the AI's working memory dynamically based on context
         ai.working_memory = update_working_memory(user_message)
@@ -140,6 +143,19 @@ def threaded_model_response(llm, user_message, model_response, update_window):
         identity = generate_hash(str(user_message) + str(now))
         ai.core_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
         update_window.set()
+        if ps.multimodalness is True:  # strip the AIRL from the tag so the model only sees <image>, and load the image
+            image_path_pattern = r"<image:(.+?)>"
+            matches = re.search(image_path_pattern, user_message)
+            if matches:
+                log("Beginning multi-mode inference...")
+                image_path = matches.group(1)
+                log(f"Image path is: {image_path}")
+                user_message = re.sub(image_path_pattern, "<image>", user_message)
+                log(f"User message now: {user_message}")
+                ai.visual_memory = Image.open(os.path.join(ai.personality_path, image_path))
+            else:
+                log("Beginning single mode inference on multi-mode model...")
+
         ai.working_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
         # Run the language models and update the AI's memory with it's output
         response = generate_model_response(llm)
@@ -230,18 +246,28 @@ def generate_model_response(llm):
     gc.collect()
     cprompt = custom_template(llm)
     log("Tokenizing...")
+    log("Hackishly finding where model response will start from working memory..")
     prompt_encoded = llm.tokenizer.encode(cprompt)  # This extra tokenization and decode step is necessary to keep track of where the model's response actually starts after tokens are munged by the tokenizer.
     prompt_decoded = llm.tokenizer.decode(prompt_encoded, skip_special_tokens=False)
     response_start = len(prompt_decoded)
-    if ps.backend in ("cuda", "auto"):
-        log("Prompt to cuda...")
-        prompt = llm.tokenizer.encode(cprompt, return_tensors="pt").to("cuda")
-    elif ps.backend == "cpu":
-        log("Prompt to cpu...")
-        prompt = llm.tokenizer.encode(cprompt, return_tensors="pt").to("cpu")
+    llm.tokenizer.pad_token = llm.tokenizer.eos_token
+    if ps.multimodalness is False or ai.visual_memory is None:
+        if ps.backend in ("cuda", "auto"):
+            log("Prompt to cuda...")
+            encoded_inputs = llm.tokenizer(cprompt, return_tensors="pt", padding=True, truncation=True)
+            prompt = {"input_ids": encoded_inputs["input_ids"].to("cuda"), "attention_mask": encoded_inputs["attention_mask"].to("cuda")}
+        else:
+            log(f"Prompt to {ps.backend}...")
+            encoded_inputs = llm.tokenizer(cprompt, return_tensors="pt", padding=True, truncation=True)
+            prompt = {"input_ids": encoded_inputs["input_ids"].to(ps.backend), "attention_mask": encoded_inputs["attention_mask"].to(ps.backend)}
     else:
-        log(f"Prompt to {ps.backend}...")
-        prompt = llm.tokenizer.encode(cprompt, return_tensors="pt").to("device")
+        if ps.backend in ("cuda", "auto"):
+            log("Prompt+image to cuda...")
+            prompt = llm.processor(images=ai.visual_memory, text=cprompt, return_tensors="pt", padding=True, truncation=True).to("cuda")
+        else:
+            log(f"Prompt+image to {ps.backend}...")
+            prompt = llm.processor(images=ai.visual_memory, text=cprompt, return_tensors="pt", padding=True, truncation=True).to(ps.backend)
+
 
     if any([ai.personality_definition["temperature_enable"], ai.personality_definition["top_k_enable"], ai.personality_definition["top_p_enable"], ai.personality_definition["typical_p_enable"], ai.personality_definition["repetition_penalty_enable"], ai.personality_definition["length_penalty_enable"]]):
         log("Using sampling...")
@@ -250,7 +276,7 @@ def generate_model_response(llm):
     log("Running primary model...")
     with torch.inference_mode():
         with autocast():
-            outputs = llm.model.generate(prompt, max_new_tokens=ai.personality_definition["response_length"],
+            outputs = llm.model.generate(**prompt, max_new_tokens=ai.personality_definition["response_length"],
                                          streamer=llm.streamer if ps.do_stream and (ai.personality_definition["num_beams"] == 1) else None,
                                          do_sample=any([ai.personality_definition["temperature_enable"], ai.personality_definition["top_k_enable"], ai.personality_definition["top_p_enable"],
                                                         ai.personality_definition["typical_p_enable"], ai.personality_definition["repetition_penalty_enable"], ai.personality_definition["length_penalty_enable"]]),
@@ -264,6 +290,7 @@ def generate_model_response(llm):
                                          pad_token_id=llm.tokenizer.eos_token_id)
     # Clean up the context after inference
     prompt = None
+    ai.visual_memory = None
     del prompt
     if ps.backend in ["auto", "cuda"]:
         torch.cuda.empty_cache()

@@ -8,6 +8,7 @@ Created on Sat Mar 23 00:39:32 2024
 import os
 import json
 from datetime import datetime
+from PIL import Image
 
 
 class SingletonMeta(type):
@@ -497,9 +498,32 @@ class AI(metaclass=SingletonMeta):
         """
         self._personality_path = new_path
 
+    @property
+    def visual_memory(self):
+        """
+        Retrieves the image in the AI visual memory.
+        """
+        return self._visual_memory
+
+    @visual_memory.setter
+    def visual_memory(self, new_image):
+        """
+        Sets a new image into the AI visual memory, ensuring it is a PIL.Image.
+
+        Args:
+            new_image (PIL.Image): The new image to load.
+
+        Raises:
+            ValueError: If the new_image is not an instance of PIL.Image.
+        """
+        if new_image is not None:
+            if not isinstance(new_image, Image.Image):
+                raise ValueError("The new_image must be an instance of PIL.Image")
+        self._visual_memory = new_image
+
     def reset(self):
         """
-        Resets the AI's state to default, clearing all memories and settings except for the singleton nature of the instance.
+        Resets the AI's state to default, clearing all memories and settings
         """
         self.personality_definition = {"name": "Name", "top_p": 1.0, "top_k": 50, "temperature": 1.0, "response_length": 64, "persistent": True, "stm_size": 24, "ltm_size": 24, "repetition_penalty": 1.0, "length_penalty": 1.0, "num_beams": 1, "num_keywords": 3, "top_p_enable": False, "top_k_enable": False, "typical_p": 0.92, "typical_p_enable": True, "temperature_enable": False, "length_penalty_enable": False, "repetition_penalty_enable": False}
         self.core_memory = []
@@ -507,3 +531,4 @@ class AI(metaclass=SingletonMeta):
         self.system_memory = []
         self.guidance_messages = []
         self.personality_path = ""
+        self.visual_memory = None
