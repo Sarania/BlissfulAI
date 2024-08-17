@@ -300,16 +300,20 @@ def update_main_window(window):
     ps = ProgramSettings()
     clear_conversation(window)
     for i, message in enumerate(ai.core_memory):
+        current_message = message["content"]
         if len(ai.core_memory) - ps.max_history <= i:
             sender_role = message["role"]
             sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
             sender_color = "purple" if sender_role == "assistant" else "blue"
             if ai.core_memory[i]["rating"] == "+":
-                display_message(window, sender_name, message["content"], sender_color, "green")
+                window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
+                window["-OUTPUT-"].print(current_message, text_color="green", end="\n")
             elif ai.core_memory[i]["rating"] == "-":
-                display_message(window, sender_name, message["content"], sender_color, "red")
+                window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
+                window["-OUTPUT-"].print(current_message, text_color="red", end="\n")
             else:
-                display_message(window, sender_name, message["content"], sender_color, "black")
+                window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
+                window["-OUTPUT-"].print(current_message, text_color="black", end="\n")
 
 
 def handle_edit_event():
@@ -453,21 +457,6 @@ def select_folder():
     else:
         log(f"Model selected: {folder}")
     return folder
-
-
-def display_message(window, sender_name=None, message="", sender_color="black", message_color="black"):
-    """
-    Displays a message in the chat window with the specified formatting, including background color.
-
-    Parameters:
-    - window: The PySimpleGUI window object.
-    - sender_name: The name of the message sender, string.
-    - message: The message content, string.
-    - sender_color: The color for the sender"s name, string.
-    - message_color: The color for the message text, string.    - background_color: The background color for both sender"s name and message, string.
-    """
-    window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
-    window["-OUTPUT-"].print(message, text_color=message_color, end="\n")
 
 
 def update_hard_memory(silent=0):
