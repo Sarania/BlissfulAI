@@ -144,13 +144,13 @@ def threaded_model_response(llm, user_message, model_response, update_window):
         ai.core_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
         update_window.set()
         if ps.multimodalness is True:  # strip the AIRL from the tag so the model only sees <image>, and load the image
-            image_path_pattern = r"<image:(.+?)>"
-            matches = re.search(image_path_pattern, user_message)
+            image_link_pattern = r"<image:(.+?)>"
+            matches = re.search(image_link_pattern, user_message)
             if matches:
                 log("Beginning multi-mode inference...")
                 image_path = matches.group(1)
                 log(f"Image path is: {image_path}")
-                user_message = re.sub(image_path_pattern, "<image>", user_message)
+                user_message = re.sub(image_link_pattern, "<image>", user_message)
                 log(f"User message now: {user_message}")
                 ai.visual_memory = Image.open(os.path.join(ai.personality_path, image_path))
             else:

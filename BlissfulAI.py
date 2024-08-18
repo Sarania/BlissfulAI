@@ -1059,6 +1059,7 @@ def main():
     if args.suppress:
         warnings.filterwarnings("ignore")
     sg.theme("Purple")
+    image_link_pattern = r"<image:(.+?)>"
     llm = LanguageModel()
     ps = ProgramSettings()
     ps.do_stream = args.stream
@@ -1188,8 +1189,7 @@ def main():
                     window["-INPUT-"].update("")
                     log("User message: " + user_message)
                     if ps.multimodalness is True:
-                        image_path_pattern = r"<image:(.+?)>"
-                        matches = re.search(image_path_pattern, user_message)
+                        matches = re.search(image_link_pattern, user_message)
                         if matches:
                             if ai.personality_definition["persistent"] is True:
                                 log("Detected image attachment and AI is persistent, converting to flashbulb memory...")
@@ -1201,7 +1201,7 @@ def main():
                                 new_message_tag = f"<image:{new_filename}>"
                                 destination_path = os.path.join(ai.personality_path, new_filename)
                                 shutil.copy(image_path, destination_path)
-                                user_message = re.sub(image_path_pattern, new_message_tag, user_message)
+                                user_message = re.sub(image_link_pattern, new_message_tag, user_message)
                                 log(f"User message updated: {user_message}")
                     ps.model_status = "inferencing"
                     threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response, update_window), daemon=True).start()
