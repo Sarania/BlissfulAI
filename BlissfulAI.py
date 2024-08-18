@@ -38,7 +38,7 @@ from queue import Queue
 import webbrowser
 import PySimpleGUI as sg
 from inference_engine import threaded_model_response, load_model
-from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, generate_image_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, load_image
+from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, generate_image_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, load_image, open_image_in_viewer
 from singletons import AI, ProgramSettings
 import torch
 if sys.platform == "win32":
@@ -794,7 +794,7 @@ def create_guidance_message():
                 popup_message("Please fill out both a message and the number of turns before adding!")
 
 
-def handle_middle_click(event, window, context_menu, last_entry):
+def handle_middle_click(event, window, context_menu, last_entry, image_path):
     """
     Handles the middle click context menu
 
@@ -836,9 +836,15 @@ def handle_middle_click(event, window, context_menu, last_entry):
         def edit():
             ps.special = f"edit.{line_number}"
 
+        def show_image():
+            if image_path is not None:
+                open_image_in_viewer(os.path.join(ai.personality_path, image_path))
+
         if last_entry:
             context_menu.entryconfig("Regenerate", command=regenerate_response)
         context_menu.entryconfig("Edit", command=edit)
+        if image_path is not None:
+            context_menu.entryconfig(f"View flashbulb memory: {image_path}", command=show_image)
         context_menu.entryconfig("👍", command=update_rating_up)
         context_menu.entryconfig("-", command=update_rating_neutral)
         context_menu.entryconfig("👎", command=update_rating_down)
@@ -874,13 +880,21 @@ def update_context_menu(event, window):
     else:
         last_entry = False
     log("Accessing line: " + str(line_number))
+    image_path = None
+    image_path_pattern = r"<image:(.+?)>"
+    matches = re.search(image_path_pattern, ai.core_memory[line_number]["content"])
+    if matches:
+        log("Detected flashbulb memory...")
+        image_path = matches.group(1)
     context_menu.add_command(label="Edit")
+    if image_path is not None:
+        context_menu.add_command(label=f"View flashbulb memory: {image_path}")
     context_menu.add_command(label="👍")
     context_menu.add_command(label="-")
     context_menu.add_command(label="👎")
     context_menu.add_command(label="Timestamp: " + ai.core_memory[line_number]["date"])
     context_menu.add_command(label="Identity: " + ai.core_memory[line_number]["identity"])
-    handle_middle_click(event, window, context_menu, last_entry)
+    handle_middle_click(event, window, context_menu, last_entry, image_path)
 
 
 def create_chat_window():

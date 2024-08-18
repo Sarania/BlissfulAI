@@ -62,6 +62,24 @@ def check_model_config(model_path):
     return multimodal
 
 
+def open_image_in_viewer(image_path):
+    """
+    Loads an image in the users default image viewer
+
+    Parameters:
+    - image_path: String, the path of the image to load
+    """
+    try:
+        if platform.system() == 'Windows':
+            subprocess.run(["start", image_path], shell=True, check=True)
+        elif platform.system() == 'Darwin':  # macOS
+            subprocess.run(["open", image_path], check=True)
+        else:  # Assume Linux
+            subprocess.run(["xdg-open", image_path], check=True)
+    except subprocess.CalledProcessError as e:
+        log(f"Failed to open image: {e}")
+
+
 def load_image(filename, x_size, y_size):
     """
     Helper function to load an image for PSG
