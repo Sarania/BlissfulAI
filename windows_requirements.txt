@@ -4,8 +4,10 @@ huggingface-hub>=0.22.1
 psutil>=5.9.8
 pynvml>=11.5.0
 PySimpleGUI==4.60.5
+protobuf>=5.26.0
 pywin32>=306
 spacy==3.7.4
+sentencepiece>=0.1.95
 transformers>=4.39.1
 Pillow>=10.3.0
 numpy==1.26.4
