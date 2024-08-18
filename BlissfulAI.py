@@ -1202,7 +1202,6 @@ def main():
                                 destination_path = os.path.join(ai.personality_path, new_filename)
                                 shutil.copy(image_path, destination_path)
                                 user_message = re.sub(image_link_pattern, new_message_tag, user_message)
-                                log(f"User message updated: {user_message}")
                     ps.model_status = "inferencing"
                     threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response, update_window), daemon=True).start()
                 elif ps.model_status in ["inferencing", "loading"]:

@@ -149,9 +149,7 @@ def threaded_model_response(llm, user_message, model_response, update_window):
             if matches:
                 log("Beginning multi-mode inference...")
                 image_path = matches.group(1)
-                log(f"Image path is: {image_path}")
                 user_message = re.sub(image_link_pattern, "<image>", user_message)
-                log(f"User message now: {user_message}")
                 ai.visual_memory = Image.open(os.path.join(ai.personality_path, image_path))
             else:
                 log("Beginning single mode inference on multi-mode model...")
