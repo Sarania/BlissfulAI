@@ -299,19 +299,28 @@ def update_main_window(window):
     ai = AI()
     ps = ProgramSettings()
     clear_conversation(window)
-    for i, message in enumerate(ai.core_memory):
+    image_path_pattern = r"<image:(.+?)>"
+
+    for _, message in enumerate(ai.core_memory[-ps.max_history:]):  # Slice list once instead of checking each time
         current_message = message["content"]
-        if len(ai.core_memory) - ps.max_history <= i:
-            sender_role = message["role"]
-            sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
-            sender_color = "purple" if sender_role == "assistant" else "blue"
-            text_color = "black"
-            if ai.core_memory[i]["rating"] == "+":
-                text_color = "green"
-            elif ai.core_memory[i]["rating"] == "-":
-                text_color = "red"
-            window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
-            window["-OUTPUT-"].print(current_message, text_color=text_color, end="\n")
+        sender_role = message["role"]
+        sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
+        sender_color = "purple" if sender_role == "assistant" else "blue"
+        text_color = "green" if message["rating"] == "+" else "red" if message["rating"] == "-" else "black"
+
+        matches = re.search(image_path_pattern, current_message)
+        if matches:
+            start_pos, end_pos = matches.span()
+            message_parts = [current_message[:start_pos], f"<image:{matches.group(1)}>", current_message[end_pos:]]
+            colors = [text_color, "#8b1c93", text_color]
+        else:
+            message_parts = [current_message]
+            colors = [text_color]
+
+        window["-OUTPUT-"].print(f"{sender_name}: ", text_color=sender_color, end="")
+        for part, color in zip(message_parts, colors):
+            window["-OUTPUT-"].print(part, text_color=color, end="")
+        window["-OUTPUT-"].print()
 
 
 def handle_edit_event():
