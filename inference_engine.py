@@ -454,7 +454,8 @@ def post_process(input_string, llm, response_start):
                 applied_template = "Synthia"
                 end_tags = ["\nUSER:"]
             else:
-                raise ValueError("Could not determine template style from input for text processing!")
+                log("Could not determine template style from input for text processing!")
+                applied_template = None
             log(f"Best guess template: {applied_template}")
         else:
             if template == "BAI SynthIA":
