@@ -1213,7 +1213,10 @@ def main():
             else:
                 popup_message("No personality to send a message to, silly!")
         elif event == "Attach":
-            handle_attach_event(window, values["-INPUT-"])  # Attach an image
+            if not re.search(image_link_pattern, values["-INPUT-"]):
+                handle_attach_event(window, values["-INPUT-"])  # Attach an image
+            else:
+                popup_message("Currently only a single attachment is supported per message!")
         elif event == "Guidance":
             create_guidance_message()
         # Check if the model is busy and if not, (hopefully) unload the previous model and then start a thread to load the new model
