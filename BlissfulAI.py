@@ -937,11 +937,10 @@ def handle_attach_event(window, current_input):
     filename = sg.popup_get_file('Select an image file', file_types=file_types, no_window=True)
     if filename:
         log(f"Image file selected: {filename}")
-        # Update the text box
         current_text = current_input  # Get the current content of the Multiline
         new_text = current_text + f" <image:{filename}> "  # Append the <image> tag
         window["-INPUT-"].update(new_text)  # Update the Multiline with the new content
-        log("Image inserted into message! Note when message is submitted, image will be converted to a flashbulb memory and copied into AI's personality folder!")
+        log("Image inserted into message!")
     else:
         log("No image file selected!")
 
@@ -1192,20 +1191,18 @@ def main():
                         image_path_pattern = r"<image:(.+?)>"
                         matches = re.search(image_path_pattern, user_message)
                         if matches:
-                            log("Detected image attachment, converting to flashbulb memory...")
-                            image_path = matches.group(1)
-                            log(f"Image path extracted: {image_path}")
-                            # Create resource locator from checksum
-                            image_hash = generate_image_hash(image_path)
-                            _, ext = os.path.splitext(image_path)
-                            # Construct new filename with hash and original extension, and copy the file into the AI folder
-                            new_filename = f"{image_hash}{ext}"
-                            new_message_tag = f"<image:{new_filename}>"
-                            destination_path = os.path.join(ai.personality_path, new_filename)
-                            # Copy the file to the new location
-                            shutil.copy(image_path, destination_path)
-                            user_message = re.sub(image_path_pattern, new_message_tag, user_message)
-                            log(f"User message updated: {user_message}")
+                            if ai.personality_definition["persistent"] is True:
+                                log("Detected image attachment and AI is persistent, converting to flashbulb memory...")
+                                image_path = matches.group(1)
+                                log(f"Image path extracted: {image_path}")
+                                image_hash = generate_image_hash(image_path)
+                                _, ext = os.path.splitext(image_path)
+                                new_filename = f"{image_hash}{ext}"
+                                new_message_tag = f"<image:{new_filename}>"
+                                destination_path = os.path.join(ai.personality_path, new_filename)
+                                shutil.copy(image_path, destination_path)
+                                user_message = re.sub(image_path_pattern, new_message_tag, user_message)
+                                log(f"User message updated: {user_message}")
                     ps.model_status = "inferencing"
                     threading.Thread(target=threaded_model_response, args=(llm, user_message, model_response, update_window), daemon=True).start()
                 elif ps.model_status in ["inferencing", "loading"]:
