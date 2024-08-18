@@ -20,7 +20,8 @@ Welcome to **BlissfulAI**, a work in progress uncensored chatbot for LLMs.
 - Characters use a working memory system: a context sensitive combination of recent conversation(short term memory) and past conversations(long term memory).
 - Fully customizable, adaptable to different hardware configurations. Low VRAM? Limp by with a quantized 3 billion parameter model. Max VRAM? Run giant models that the rest of us can only dream about!
 - Live help system and solid default settings so you can jump right in!
-- Voices, 3D character avatars, multimodal operation and more are planned for the future!
+- Multimodal operation! You can send them not just text, but images too! And soon they will be able to send you images as well!
+- Voices, 3D character avatars, and more are planned for the future!
 - Fully open source, licensed under CC-BY-NC-SA!
 
 
@@ -48,6 +49,7 @@ Now you're gonna need a model to work with. For best results I recommend at leas
 
 - [Opus 1.2 7B](https://huggingface.co/dreamgen/opus-v1.2-7b) - Highly recommended! An uncensored, 7 billion parameter model for roleplaying and creative writing. Use with the "BAI Opus" template. 
 - [OpenZephyrChat 7B](https://huggingface.co/Fredithefish/OpenZephyrChat-v0.2) - Also highly recommended! A 7 billion parameter model mainly used for chatting, a merge between OpenChat and Zephyr. Use with the "BAI Zephyr" template.
+- [Llava 1.6 Mistral 7B](https://huggingface.co/llava-hf/llava-v1.6-mistral-7b-hf) - Mistral awesomeness paired with Llava multimodal goodness, all in a 7B package! Supports text or text+image input with text output!
 - [Zephyr 7B β](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta) - A 7 billion paramter model trained with DPO for good instruction following. Use with the "BAI Zephyr" or "HF Automatic" template. Great for question answering tasks.
 - [StableLM Zephyr 3B](https://huggingface.co/stabilityai/stablelm-zephyr-3b) - A pretty decent 3 billion parameter instruction following model. Recommended if VRAM is a concern, otherwise use a 7B model. Use with "BAI Zephyr" or "HF Automatic" template.
 
