@@ -1112,11 +1112,11 @@ def main():
     if args.model is not None and os.path.exists(args.model):
         llm.model_path = args.model
         ps.model_status = "loading"
-        threading.Thread(target=load_model, args=(llm.model_path, model_queue), daemon=True).start()
+        threading.Thread(target=load_model, args=(llm.model_path, model_queue, window), daemon=True).start()
     elif ps.default_model is not None and os.path.exists(ps.default_model):
         llm.model_path = ps.default_model
         ps.model_status = "loading"
-        threading.Thread(target=load_model, args=(llm.model_path, model_queue), daemon=True).start()
+        threading.Thread(target=load_model, args=(llm.model_path, model_queue, window), daemon=True).start()
 
     # Main program loop
     ticks = 0
@@ -1139,7 +1139,7 @@ def main():
             if ps.backend in ["auto", "cuda"]:
                 torch.cuda.empty_cache()
             ps.model_status = "loading"
-            threading.Thread(target=load_model, args=(llm.model_path, model_queue), daemon=True).start()
+            threading.Thread(target=load_model, args=(llm.model_path, model_queue, window), daemon=True).start()
 
         # Handle special events
         if ps.special == "regenerate":
@@ -1211,7 +1211,7 @@ def main():
                     popup_message("Please load a model first!")
             else:
                 popup_message("No personality to send a message to, silly!")
-        elif event == "Attach":
+        elif event == "Attach":  # Button is disabled in single mode so we are safe to assume we can proceed
             if not re.search(image_link_pattern, values["-INPUT-"]):
                 handle_attach_event(window, values["-INPUT-"])  # Attach an image
             else:
@@ -1239,7 +1239,7 @@ def main():
                 else:
                     llm.model_path = selected_folder
                     ps.model_status = "loading"
-                    threading.Thread(target=load_model, args=(selected_folder, model_queue), daemon=True).start()
+                    threading.Thread(target=load_model, args=(selected_folder, model_queue, window), daemon=True).start()
                     llm.model_path = selected_folder
         elif event == "Create Personality":
             old_personality = None

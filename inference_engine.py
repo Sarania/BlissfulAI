@@ -76,7 +76,7 @@ def is_likely_code(text):
 
 
 @timed_execution
-def load_model(new_model, queue):
+def load_model(new_model, queue, window):
     """
     Loads a new model to the user specified device configuration.
     Called as a thread, returns the model and tokenizer via queue
@@ -105,8 +105,10 @@ def load_model(new_model, queue):
         with torch.inference_mode():
             ps.multimodalness = check_model_config(new_model)
             if ps. multimodalness is False:
+                window["Attach"].update(disabled=True)
                 log("Loading single mode model...")
             else:
+                window["Attach"].update(disabled=False)
                 log("Loading multi mode model...")
                 model_class = LlavaNextForConditionalGeneration
             if ps.quant != "None":
