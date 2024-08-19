@@ -40,18 +40,39 @@ except ImportError:
     sys.exit(9)
 
 
-def create_setup_window(os_type):
+def get_platform():
+    """
+    Determines the operating system platform and caches the result.
+    Returns 'windows', 'mac', or 'linux' depending on the system.
+    """
+    if not hasattr(get_platform, "checked"):
+        # Check and cache the platform result
+        os_system = platform.system().lower()
+        if "windows" in os_system:
+            get_platform.platform = "windows"
+        elif "darwin" in os_system:
+            get_platform.platform = "mac"
+        elif "linux" in os_system:
+            get_platform.platform = "linux"
+        else:
+            get_platform.platform = "unknown"
+        get_platform.checked = True
+
+    return get_platform.platform
+
+
+def create_setup_window():
     """
     Function for creating the window to edit the programs settings
     """
     sg.theme("Purple")
     ps = ProgramSettings()
     label_width = 20
-    if os_type == "Windows":
+    if get_platform() == "windows":
         cuda_options = ["CUDA 12.1", "CUDA 11.8", "CPU"]
         help_text = "Torch Version Help: If you have an Nvidia GPU equal to or newer than GTX 9xx, select one of the CUDA options.\nIf you don't then select CPU but note that inference will be SLOW."
         icon = "./resources/bai.ico"
-    elif os_type == "Linux":
+    else:
         cuda_options = ["CUDA 12.1", "CUDA 11.8", "ROCm 6.0", "ROCm 5.7", "CPU"]
         help_text = "Torch Version Help: If you have an Nvidia GPU equal to or newer than GTX 9xx, select one of the CUDA options.\nIf you have an AMD GPU equal to or newer than RX 6XXX, select one of the ROCm options.\nIf you have neither then select CPU but note that inference will be SLOW."
         icon = "./resources/bai.png"
@@ -65,12 +86,12 @@ def create_setup_window(os_type):
     return window
 
 
-def handle_setup_event(os_type):
+def handle_setup_event():
     """
     Function for handling the settings event
     """
     ps = ProgramSettings()
-    settings_window = create_setup_window(os_type)
+    settings_window = create_setup_window()
 
     while True:
         event, values = settings_window.read(timeout=50)
@@ -86,9 +107,8 @@ def handle_setup_event(os_type):
 
 
 def main():
-    """Main function for downloading models"""
-    os_type = platform.system()
-    cuda_version = handle_setup_event(os_type)
+    """Main function for easy setup """
+    cuda_version = handle_setup_event()
     cuda_to_torch = {
         "CUDA 12.1": "pip install torch --index-url https://download.pytorch.org/whl/cu121",
         "CUDA 11.8": "pip install torch --index-url https://download.pytorch.org/whl/cu118",
@@ -99,16 +119,16 @@ def main():
     command = cuda_to_torch.get(cuda_version, "pip install torch")
     print("Installing selected PyTorch version...")
 
-    if os_type == "Linux":
+    if get_platform() in ["linux", "mac"]:
         # For Linux, write a bash script
         script_name = "install_torch.sh"
         script_content = f"#!/bin/bash\n{command}\n"
-    elif os_type == "Windows":
+    elif get_platform() == "windows":
         # For Windows, write a batch file
         script_name = "install_torch.bat"
         script_content = f"@echo off\n{command}\n"
     else:
-        print(f"\033[91mUnsupported OS\033[0m: {os_type}")
+        print(f"\033[91mUnsupported OS\033[0m: {get_platform()}")
         sys.exit(8)
 
     with open(script_name, "w", encoding="utf-8") as file:

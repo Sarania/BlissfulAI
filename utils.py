@@ -20,6 +20,27 @@ from PIL import Image
 import torch
 
 
+def get_platform():
+    """
+    Determines the operating system platform and caches the result.
+    Returns 'windows', 'mac', or 'linux' depending on the system.
+    """
+    if not hasattr(get_platform, "checked"):
+        # Check and cache the platform result
+        os_system = platform.system().lower()
+        if "windows" in os_system:
+            get_platform.platform = "windows"
+        elif "darwin" in os_system:
+            get_platform.platform = "mac"
+        elif "linux" in os_system:
+            get_platform.platform = "linux"
+        else:
+            get_platform.platform = "unknown"
+        get_platform.checked = True
+
+    return get_platform.platform
+
+
 def check_model_config(model_path):
     """
     Check the model's configuration file to determine if it is a multimodal model.
@@ -70,9 +91,9 @@ def open_image_in_viewer(image_path):
     - image_path: String, the path of the image to load
     """
     try:
-        if platform.system() == 'Windows':
+        if get_platform() == "windows":
             subprocess.run(["start", image_path], shell=True, check=True)
-        elif platform.system() == 'Darwin':  # macOS
+        elif get_platform() == "mac":
             subprocess.run(["open", image_path], check=True)
         else:  # Assume Linux
             subprocess.run(["xdg-open", image_path], check=True)
@@ -129,13 +150,13 @@ def get_cpu_name():
     """
     Get the CPU name for Linux/Windows.
     """
-    if platform.system() == "Windows":
+    if get_platform() == "windows":
         try:
             cpu_name = subprocess.check_output("wmic cpu get name", stderr=subprocess.STDOUT).decode().strip().split("\n")[1].strip()
             return cpu_name
         except subprocess.CalledProcessError as e:
             return "Could not fetch CPU name: " + str(e)
-    elif platform.system() == "Linux":
+    elif get_platform() == "linux":
         command = "cat /proc/cpuinfo"
         all_info = subprocess.check_output(command, shell=True).strip().decode()
         for line in all_info.split("\n"):
@@ -150,7 +171,7 @@ def get_gpu_info():
     """
     gpu_names = []
     all_info = None
-    if platform.system() == "Windows":
+    if get_platform() == "windows":
         try:
             all_info = subprocess.check_output(["wmic", "path", "win32_videocontroller", "get", "name"], stderr=subprocess.STDOUT).decode().strip().split("\n")[1:]
             for info in all_info:
@@ -159,7 +180,7 @@ def get_gpu_info():
             return gpu_names
         except subprocess.CalledProcessError as e:
             return ["Could not fetch GPU names: " + str(e)]
-    elif platform.system() == "Linux":
+    elif get_platform() == "linux":
         try:
             all_info = subprocess.check_output("lspci | grep 'VGA'", shell=True).decode().strip().split("\n")
         except subprocess.CalledProcessError:

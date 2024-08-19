@@ -38,10 +38,11 @@ from queue import Queue
 import webbrowser
 import PySimpleGUI as sg
 from inference_engine import threaded_model_response, load_model
-from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, generate_image_hash, get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, load_image, open_image_in_viewer
+from utils import log, timed_execution, is_number, update_system_status, animate_ellipsis, generate_hash, generate_image_hash
+from utils import get_cpu_name, get_gpu_info, get_ram_usage, get_os_name_and_version, load_image, open_image_in_viewer, get_platform
 from singletons import AI, ProgramSettings
 import torch
-if sys.platform == "win32":
+if get_platform() == "windows":
     import win32api
     import win32con
     GLOBAL_ICON = "./resources/bai.ico"
@@ -1068,10 +1069,9 @@ def main():
     model_queue = Queue()
     update_window = threading.Event()
     ps.load_from_file()  # load the settings from settings.json
-    # Clear the previous logfile if it exists
     if os.path.exists("./logfile.txt"):
         os.remove("./logfile.txt")
-    ai = AI()  # The AI function returns either the "Chatter" or "Writer" objects depending on mode
+    ai = AI()
     # Initialize chat window UI.
     window = create_chat_window()
     # Load personality configuration and initialize core memory.
@@ -1082,30 +1082,26 @@ def main():
     # Display the conversation history
     update_main_window(window)
 
-    def shutdown_handler(signum=None, frame=None):
-        log("OS level exit request accepted.")
-        log(f"Signum: {signum}, Frame: {frame}")
-        ps = ProgramSettings()
-        if ps.model_status == "inferencing":
-            log("Removing last user_message to keep memory consistent.")
-            ai.core_memory.pop()
-        log("Final save of personality...")
-        update_hard_memory()
-        if window:
-            window.close()
-        os._exit(0)
-
-    # For Windows
-    if sys.platform == "win32":
+    if get_platform() == "windows":  # Windows shutdown handler
         def windows_shutdown_handler(event):
             if event in (win32con.CTRL_C_EVENT, win32con.CTRL_BREAK_EVENT, win32con.CTRL_CLOSE_EVENT, win32con.CTRL_LOGOFF_EVENT, win32con.CTRL_SHUTDOWN_EVENT):
                 shutdown_handler()
                 return True  # Indicate that the handler handled the event
             return False  # Other signals are not handled
         win32api.SetConsoleCtrlHandler(windows_shutdown_handler, True)
-
-    # For Linux and others
     else:
+        def shutdown_handler(signum=None, frame=None):  # Linux/other shutdown handler
+            log("OS level exit request accepted.")
+            log(f"Signum: {signum}, Frame: {frame}")
+            ps = ProgramSettings()
+            if ps.model_status == "inferencing":
+                log("Removing last user_message to keep memory consistent.")
+                ai.core_memory.pop()
+            log("Final save of personality...")
+            update_hard_memory()
+            if window:
+                window.close()
+            os._exit(0)
         signal.signal(signal.SIGINT, shutdown_handler)
         signal.signal(signal.SIGTERM, shutdown_handler)
 

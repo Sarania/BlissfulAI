@@ -8,7 +8,6 @@ Created on Sat Mar 23 00:39:32 2024
 import os
 import json
 from datetime import datetime
-from PIL import Image
 
 
 class SingletonMeta(type):
@@ -512,13 +511,7 @@ class AI(metaclass=SingletonMeta):
 
         Args:
             new_image (PIL.Image): The new image to load.
-
-        Raises:
-            ValueError: If the new_image is not an instance of PIL.Image.
         """
-        if new_image is not None:
-            if not isinstance(new_image, Image.Image):
-                raise ValueError("The new_image must be an instance of PIL.Image")
         self._visual_memory = new_image
 
     def reset(self):
