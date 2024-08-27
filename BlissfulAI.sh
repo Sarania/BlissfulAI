@@ -3,6 +3,7 @@ if [ -d "venv" ]; then
     # Activate the virtual environment
     source ./venv/bin/activate
     # Run the Python script with all passed arguments
+    export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
     python BlissfulAI.py "$@"
     # Deactivate the virtual environment
     deactivate
@@ -33,5 +34,6 @@ else
     pip install -r linux_requirements.txt
 
     echo "Setup complete! Launching BlissfulAI!"
+    export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
     python BlissfulAI.py "$@"
 fi

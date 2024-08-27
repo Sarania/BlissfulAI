@@ -3,6 +3,7 @@ if exist "venv\" (
     REM Activate the virtual environment
     call .\venv\Scripts\activate.bat
     REM Run the Python script with all passed arguments
+    set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
     python BlissfulAI.py %*
     REM Deactivate the virtual environment
     call .\venv\Scripts\deactivate.bat
@@ -21,5 +22,6 @@ if exist "venv\" (
     echo Installing BlissfulAI requirements...
     pip install -r windows_requirements.txt
     echo Setup complete! Launching BlissfulAI!
+    set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
     python BlissfulAI.py %*
 )
