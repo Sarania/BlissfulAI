@@ -342,6 +342,7 @@ def handle_edit_event():
             return False
         if event == "Save":
             for key, value in ai.personality_definition.items():
+                print(f"{key} {value}")
                 expected_type = type(value)
                 ai.personality_definition[key] = expected_type(values[key])
             log("Personality_defition updated.")
@@ -558,6 +559,7 @@ def create_edit_window():
             "response_length": "(response_length)(1+)(64) - Sets the maximum length for responses. Longer lengths allow for more detailed answers but also take longer to create.",
             "stm_size": "(stm_size)(0+)(16) - Sets the number of short term memories to be selected for working memory. Incrases VRAM usage when increased.",
             "ltm_size": "(ltm_size)(0+)(20) - Sets the number of long term memories to be selected for working memory. Increases VRAM usage when increased.",
+            "ltm_linked": "(ltm_linked) - If enabled, keeps user input and AI responses paired when selecting long term memories. Increases VRAM usage.",
             "num_keywords": "(num_keywords)(1+)(3) - Number of keywords extracted from the input for context searching.",
             "num_beams": "(num_beams)(1+)(1) - Number of alternatives explored for generating responses. Higher numbers increase response quality at the cost of speed and VRAM.",
             "persistent": "(persistent) - Whether the AI's conversation history is persistent across sessions.",
@@ -599,6 +601,7 @@ def create_edit_window():
                 [sg.Text("Response Length", size=(label_width, 1)), sg.InputText(ai.personality_definition["response_length"], key="response_length", size=(num_width, 1), enable_events=True)],
                 [sg.Text("STM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["stm_size"], key="stm_size", size=(num_width, 1), enable_events=True)],
                 [sg.Text("LTM Size", size=(label_width, 1)), sg.InputText(ai.personality_definition["ltm_size"], key="ltm_size", size=(num_width, 1), enable_events=True)],
+                [sg.Text("LTM Linked", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["ltm_linked"], key="ltm_linked")],
                 [sg.Text("Num keywords", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_keywords"], key="num_keywords", size=(num_width, 1), enable_events=True)],
                 [sg.Text("Num Beams", size=(label_width, 1)), sg.InputText(ai.personality_definition["num_beams"], key="num_beams", size=(num_width, 1), enable_events=True)],
                 [sg.Text("Persistent", size=(label_width, 1)), sg.Checkbox("", default=ai.personality_definition["persistent"], key="persistent")],
@@ -612,8 +615,8 @@ def create_edit_window():
     event_names = [
         "name", "top_p", "typical_p", "top_k", "temperature",
         "length_penalty", "repetition_penalty", "response_length",
-        "stm_size", "ltm_size", "num_keywords", "num_beams",
-        "persistent", "-SYSTEM_MESSAGES-", "-AVATAR-"
+        "stm_size", "ltm_size", "ltm_linked", "num_keywords",
+        "num_beams", "persistent", "-SYSTEM_MESSAGES-", "-AVATAR-"
     ]
     window = sg.Window("Edit Personality Configuration", layout, modal=True, finalize=True, icon=GLOBAL_ICON)
 
@@ -977,6 +980,13 @@ def load_personality(personality_path, window):
             for key, value in personality_definition.items():
                 log(f"{key}: {value}")
             log("---------------------------------------------------------")
+            default_definition = {"name": "Name", "top_p": 1.0, "top_k": 50, "temperature": 1.0, "response_length": 64, "persistent": True, "stm_size": 24, "ltm_size": 24, "ltm_linked": False, "repetition_penalty": 1.0, "length_penalty": 1.0, "num_beams": 1, "num_keywords": 3, "top_p_enable": False, "top_k_enable": False, "typical_p": 0.92, "typical_p_enable": True, "temperature_enable": False, "length_penalty_enable": False, "repetition_penalty_enable": False}
+            for entry in default_definition:
+                try:
+                    assert entry in personality_definition
+                except AssertionError:
+                    log(f"Personality defintion is missing \"{entry}\" field. Setting to default value...")
+                    personality_definition[entry] = default_definition[entry]
             # Load the system messages from the appropriate location
             ai.system_memory = []
             with open(system_message_path, "r", encoding="utf-8") as sm_file:
