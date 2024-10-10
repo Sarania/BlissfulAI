@@ -371,7 +371,6 @@ def update_working_memory(user_message):
     if ai.personality_definition["ltm_linked"]:
         final_chosen_memories = []
         for entry in chosen_memories:
-            print()
             if entry["role"] == "user":
                 final_chosen_memories.append(entry)
                 final_chosen_memories.append(entry["pair"])
