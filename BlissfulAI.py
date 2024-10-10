@@ -342,7 +342,6 @@ def handle_edit_event():
             return False
         if event == "Save":
             for key, value in ai.personality_definition.items():
-                print(f"{key} {value}")
                 expected_type = type(value)
                 ai.personality_definition[key] = expected_type(values[key])
             log("Personality_defition updated.")
