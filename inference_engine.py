@@ -6,6 +6,7 @@ Created on Mon Mar 11 18:27:45 2024
 @author: Blyss Sarania
 """
 import random
+import copy
 import re
 import gc
 import os
@@ -320,13 +321,22 @@ def update_working_memory(user_message):
 
     # Always include the last stm_size entries - this is short term memory. Exclude system messages for now.
     recent_memories = [memory for memory in ai.core_memory[-ai.personality_definition["stm_size"]:] if memory.get("role") != "system"]
+    # Use copies of core_memory entries to avoid modifying original entries
+    temp_memory = [copy.deepcopy(entry) for entry in ai.core_memory]
 
-    # Search for keyword matches in core memory, excluding the most recent stm_size entries since they"re already included.
-    for i, entry in enumerate(ai.core_memory[:-ai.personality_definition["stm_size"]]):
+    # Search for keyword matches in the temporary copy of core_memory
+    for i, entry in enumerate(temp_memory[:-ai.personality_definition["stm_size"]]):
         if entry["role"] == "system":
             continue  # Skip system messages as they will be handled separately.
         content_lower = entry["content"].lower()
         if any(word in content_lower for word in keywords_lower):
+            if ai.personality_definition["ltm_linked"]:  # Keep the memory with it's pair
+                if entry["role"] == "assistant" and i > 0:  # This creates a circular link but it's okay as temp_memory is only used here then discarded
+                    entry["pair"] = temp_memory[i - 1]
+                elif entry["role"] == "user" and i < len(temp_memory) - 1:
+                    entry["pair"] = temp_memory[i + 1]
+                else:
+                    entry["pair"] = ""
             matching_memories.append(entry)
     # Reverse both of these so that the memories are in the correct temporal order
     matching_memories = reversed(matching_memories)
@@ -358,8 +368,19 @@ def update_working_memory(user_message):
     else:
         chosen_memories = []
         log("No matching memories found.")
-
-    selected_memories = chosen_memories + recent_memories + ai.guidance_messages
+    if ai.personality_definition["ltm_linked"]:
+        final_chosen_memories = []
+        for entry in chosen_memories:
+            print()
+            if entry["role"] == "user":
+                final_chosen_memories.append(entry)
+                final_chosen_memories.append(entry["pair"])
+            else:
+                final_chosen_memories.append(entry["pair"])
+                final_chosen_memories.append(entry)
+    else:
+        final_chosen_memories = chosen_memories
+    selected_memories = final_chosen_memories + recent_memories + ai.guidance_messages
     for i, entry in enumerate(ai.guidance_messages):
         entry["turns"] -= 1
         if entry["turns"] == 0:
