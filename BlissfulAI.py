@@ -291,10 +291,9 @@ def update_main_window(window):
         current_message = message["content"]
         sender_role = message["role"]
         sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
-        if ps.theme == "light":
-            sender_color = "purple" if sender_role == "assistant" else "blue"
-            text_color = "green" if message["rating"] == "+" else "red" if message["rating"] == "-" else "black"
-        elif ps.theme == "dark":
+        sender_color = "purple" if sender_role == "assistant" else "blue"
+        text_color = "green" if message["rating"] == "+" else "red" if message["rating"] == "-" else "black"
+        if ps.theme == "dark":
             sender_color = "#d500ff" if sender_role == "assistant" else "#0055ff"
             text_color = "#47dd26" if message["rating"] == "+" else "#ff0000" if message["rating"] == "-" else "#aeaeae"
         matches = re.search(image_path_pattern, current_message)
@@ -695,7 +694,7 @@ def handle_settings_event():
             ps.autosave = values["-AUTOSAVE_ENABLE-"]
             if ps.theme != values["-THEME-"]:
                 ps.theme = values["-THEME-"]
-                sg.theme("Purple") if ps.theme == "light" else sg.theme("DarkGrey11")
+                _ = sg.theme("Purple") if ps.theme == "light" else sg.theme("DarkGrey11")
                 ps.special = "theme_reset"
             log("Settings updated.")
             ps.save_to_file()
@@ -1025,7 +1024,7 @@ def check_memory(memory):
             memory_failed += 1
             if fix_it_check(f"Memory {i} missing 'weight' field! This field was added recently so this might be expected!"):
                 log("Creating with 0 weight...")
-                memory[i]["weight"] = 0.0
+                memory[i]["weight"] = 1.0
     log("Detected " + str(memory_failed) + " errors in memory!")
 
 
@@ -1099,7 +1098,7 @@ def main():
     model_queue = Queue()
     update_window = threading.Event()
     ps.load_from_file()  # load the settings from settings.json
-    sg.theme("Purple") if ps.theme == "light" else sg.theme("DarkGrey11")
+    _ = sg.theme("Purple") if ps.theme == "light" else sg.theme("DarkGrey11")
     if os.path.exists("./logfile.txt"):
         os.remove("./logfile.txt")
     ai = AI()

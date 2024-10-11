@@ -11,7 +11,6 @@ import re
 import gc
 import os
 from datetime import datetime
-from collections import OrderedDict
 import json
 from PIL import Image
 from utils import timed_execution, log, generate_hash, nvidia, check_model_config
@@ -144,7 +143,7 @@ def threaded_model_response(llm, user_message, model_response, update_window):
         ai.working_memory = update_working_memory(user_message)
         now = str(datetime.now())
         identity = generate_hash(str(user_message) + str(now))
-        ai.core_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
+        ai.core_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now, "weight": 1.0})
         update_window.set()
         if ps.multimodalness is True:  # strip the AIRL from the tag so the model only sees <image>, and load the image
             image_link_pattern = r"<image:(.+?)>"
@@ -157,12 +156,12 @@ def threaded_model_response(llm, user_message, model_response, update_window):
             else:
                 log("Beginning single mode inference on multi-mode model...")
 
-        ai.working_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now})
+        ai.working_memory.append({"role": "user", "content": user_message, "identity": identity, "rating": "", "date": now, "weight": 1.0})
         # Run the language models and update the AI's memory with it's output
         response = generate_model_response(llm)
         now = str(datetime.now())
         identity = generate_hash(str(response) + str(now))
-        ai.core_memory.append({"role": "assistant", "content": response, "identity": identity, "rating": "", "date": now})
+        ai.core_memory.append({"role": "assistant", "content": response, "identity": identity, "rating": "", "date": now, "weight": 1.0})
         model_response.put(response)
 
 
@@ -331,6 +330,7 @@ def update_working_memory(user_message):
             continue  # Skip system messages as they will be handled separately.
         content_lower = entry["content"].lower()
         if any(word in content_lower for word in keywords_lower):
+            entry["index"] = i  # Save the index that's parallel to ai.core_memory so we can update the weights later when we know the final memory choices
             if ai.personality_definition["ltm_linked"]:  # Keep the memory with it's pair
                 if entry["role"] == "assistant" and i > 0:  # This creates a circular link but it's okay as temp_memory is only used here then discarded
                     entry["pair"] = temp_memory[i - 1]
@@ -342,20 +342,25 @@ def update_working_memory(user_message):
 
     # Select memories with a bias towards more recent matches and feedback.
     if matching_memories:
-        # Create initial weights that increase linearly towards more recent entries.
-        weights = [i**0.7 for i in range(1, len(matching_memories) + 1)]
-        # Adjust weights based on matching_feedback
+        weights = [i**0.7 for i in range(1, len(matching_memories) + 1)]  # Create initial weights that increase linearly towards more recent entries.
         for i, entry in enumerate(matching_memories):
+            if entry["weight"] != 0.0 and entry["weight"] != 1.0:
+                weights[i] *= entry["weight"]
+                log(f"{'Upweighted' if entry['weight'] > 1 else 'Downweighted'}(recall) * {entry['weight']}: " + str(matching_memories[i]["content"]), ps.verbose)
             if entry["rating"] == "+":
-                log("Upweighted: " + str(matching_memories[i]["content"]))  # Upvoted memories are MUCH more likely to be recalled.
-                weights[i] *= 3
+                log("Upweighted(upvote) * 2: " + str(matching_memories[i]["content"]), ps.verbose)  # Upvoted memories are MUCH more likely to be recalled.
+                weights[i] *= 2
             elif entry["rating"] == "-":
-                log("Downweighted: " + str(matching_memories[i]["content"]))  # Downvoted memories are half as likely to be recalled.
-                weights[i] *= .25
+                log("Downweighted(downvote) * 0.33: " + str(matching_memories[i]["content"]), ps.verbose)  # Downvoted memories are half as likely to be recalled.
+                weights[i] *= .33
         chosen_memories = weighted_selection(matching_memories, weights, min(ai.personality_definition["ltm_size"], len(matching_memories)))  # This picks the actual memories to use based on the weights
     else:
         chosen_memories = []
         log("No matching memories found.")
+
+    for entry in chosen_memories:
+        ai.core_memory[entry["index"]]["weight"] = ai.core_memory[entry["index"]]["weight"] + .04  # Update memory weights if a memory is recalled, this variable will undoubtedly need tweaked in the future!
+
     if ai.personality_definition["ltm_linked"]:
         final_chosen_memories = []
         for entry in chosen_memories:
@@ -367,6 +372,7 @@ def update_working_memory(user_message):
                 final_chosen_memories.append(entry)
     else:
         final_chosen_memories = chosen_memories
+
     selected_memories = final_chosen_memories + recent_memories + ai.guidance_messages
     for i, entry in enumerate(ai.guidance_messages):
         entry["turns"] -= 1
