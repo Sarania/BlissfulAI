@@ -408,9 +408,7 @@ def extract_keywords(sentence, personality_definition):
     - keywords: A list of keywords
 
     """
-    # Load the English language model
     nlp = spacy.load("en_core_web_trf")
-    # Process the sentence using spaCy
     doc = nlp(sentence)
 
     # Initialize a list for meaningful lemmas and a set for seen lemmas to avoid duplicates
@@ -428,13 +426,11 @@ def extract_keywords(sentence, personality_definition):
             if token.pos_ == pos and lemma not in seen_lemmas and len(meaningful_lemmas) < personality_definition["num_keywords"]:
                 meaningful_lemmas.append(lemma)
                 seen_lemmas.add(lemma)
-            # Break early if we have collected enough lemmas
             if len(meaningful_lemmas) == personality_definition["num_keywords"]:
                 break
         if len(meaningful_lemmas) == personality_definition["num_keywords"]:
             break
 
-    # Take the first three unique meaningful lemmas, now potentially including base forms of verbs and adjectives
     keywords = meaningful_lemmas[:personality_definition["num_keywords"]]
 
     log("Extracted keywords: " + str(keywords))
