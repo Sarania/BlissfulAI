@@ -369,12 +369,10 @@ def animate_ellipsis():
     'update_frequency' controls how often the ellipsis updates relative to UI refreshes.
     """
     # Initialize the counter and ellipsis attribute if they haven't been set before
-    if not hasattr(animate_ellipsis, "counter"):
-        animate_ellipsis.counter = 0
+    if not hasattr(animate_ellipsis, "timer"):
+        animate_ellipsis.timer = time.time()
     if not hasattr(animate_ellipsis, "ellipsis"):
         animate_ellipsis.ellipsis = " "
-
-    animate_ellipsis.counter += 1
 
     next_state = {
         " ": ".",
@@ -383,8 +381,7 @@ def animate_ellipsis():
         "...": " ",
     }
 
-    # Only update the ellipsis state when the counter matches the update frequency
-    if animate_ellipsis.counter % 3 == 0:
+    if time.time() - animate_ellipsis.timer > .25:
         animate_ellipsis.ellipsis = next_state.get(animate_ellipsis.ellipsis, " ")
-
+        animate_ellipsis.timer = time.time()
     return animate_ellipsis.ellipsis

@@ -22,6 +22,7 @@ Created on Mon Mar 4 12:00:00 2024
 
 @author: Blyss Sarania
 """
+import time
 import signal
 import os
 import re
@@ -957,7 +958,7 @@ def handle_attach_event(window, current_input):
     filename = sg.popup_get_file('Select an image file', file_types=file_types, no_window=True)
     if filename:
         log(f"Image file selected: {filename}")
-        current_text = current_input  
+        current_text = current_input
         new_text = current_text + f" <image:{filename}> "  # Append the <image> tag
         window["-INPUT-"].update(new_text)
         log("Image inserted into message!")
@@ -1130,7 +1131,8 @@ def main():
         threading.Thread(target=load_model, args=(llm.model_path, model_queue, window), daemon=True).start()
 
     # Main program loop
-    ticks = 0
+    save_time = time.time()
+    refresh_time = time.time()
     while True:
         event, values = window.read(timeout=50)
         # The first section checks Window and ps.model_status events
@@ -1312,14 +1314,15 @@ def main():
         if update_window.is_set():
             update_main_window(window)
             update_window.clear()
-        ticks += 1
-        if ticks % 5 == 0:
+        current_time = time.time()
+        if current_time - refresh_time > .5:
             update_system_status(window, llm.model_path)
-        if ticks == 750:
+            refresh_time = time.time()
+        if current_time - save_time > 60:
             if (ps.autosave and ps.personality_status == "loaded") and ps.model_status != "inferencing":
                 log("Autosaving personality...")
                 update_hard_memory(1)
-            ticks = 0
+            save_time = time.time()
 
 
 parser = argparse.ArgumentParser(description="")
