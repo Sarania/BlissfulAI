@@ -967,7 +967,7 @@ def handle_attach_event(window, current_input):
 
 
 @timed_execution
-def load_personality(personality_path, window):
+def load_personality(personality_path):
     """
     Function to load a specified AI and its memory into the system,
     along with making a backup of the personality configuration.
@@ -1092,9 +1092,9 @@ def main():
     window = create_chat_window()
     # Load personality configuration and initialize core memory.
     if args.personality is not None and os.path.exists(args.personality):
-        load_personality(args.personality, window)
+        load_personality(args.personality)
     elif ps.default_personality is not None and os.path.exists(ps.default_personality):
-        load_personality(ps.default_personality, window)
+        load_personality(ps.default_personality)
     # Display the conversation history
     update_main_window(window)
 
@@ -1267,9 +1267,9 @@ def main():
                 old_personality = ai.personality_path
                 ai.reset()
             if not handle_create_event() and old_personality is not None:
-                load_personality(old_personality, window)
+                load_personality(old_personality)
             else:
-                load_personality(ai.personality_path, window)
+                load_personality(ai.personality_path)
             update_main_window(window)
         elif event == "Load Personality":
             old_personality = None
@@ -1283,9 +1283,9 @@ def main():
                 if selected_folder == "":
                     log("No personality selected!")
                     if old_personality is not None:
-                        load_personality(old_personality, window)
+                        load_personality(old_personality)
                 else:
-                    load_personality(selected_folder, window)
+                    load_personality(selected_folder)
                 update_main_window(window)
             else:
                 popup_message("Cannot reload personality while the model is inferencing!")
@@ -1301,7 +1301,7 @@ def main():
                 if ps.personality_status == "loaded":
                     update_hard_memory()
                     if handle_edit_event():
-                        load_personality(ai.personality_path, window)
+                        load_personality(ai.personality_path)
                         update_main_window(window)
                 else:
                     popup_message("No personality loaded to edit!")
