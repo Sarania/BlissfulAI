@@ -957,9 +957,9 @@ def handle_attach_event(window, current_input):
     filename = sg.popup_get_file('Select an image file', file_types=file_types, no_window=True)
     if filename:
         log(f"Image file selected: {filename}")
-        current_text = current_input  # Get the current content of the Multiline
+        current_text = current_input  
         new_text = current_text + f" <image:{filename}> "  # Append the <image> tag
-        window["-INPUT-"].update(new_text)  # Update the Multiline with the new content
+        window["-INPUT-"].update(new_text)
         log("Image inserted into message!")
     else:
         log("No image file selected!")
@@ -978,20 +978,17 @@ def load_personality(personality_path, window):
     """
     ai = AI()
     ps = ProgramSettings()
-    # Define the path for easier access and readability
     personality_basename = os.path.basename(personality_path)
     config_path = os.path.join(personality_path, f"{personality_basename}.json")
     backup_path = os.path.join(personality_path, f"{personality_basename}_backup.json")
     system_message_path = os.path.join(personality_path, f"{personality_basename}_system_messages.json")
-    # Check if the personality configuration file exists
     if os.path.exists(config_path):
         # Make a backup of the personality configuration file
         shutil.copy(config_path, backup_path)
-        with open(config_path, "r", encoding="utf-8") as file:  # Load in the  main personality file
+        with open(config_path, "r", encoding="utf-8") as file:  # Load in the main personality file
             data = json.load(file)
             personality_definition = data[0]  # The first entry in this list of dictionaries is the personality_definition
             memory = data[1:]  # The remaining entries constitute it"s memory
-            # Log the loaded personality details
             log(f"Loading personality ({personality_definition['name']})...", ps.verbose)
             for key, value in personality_definition.items():
                 log(f"{key}: {value}", args.verbose)
@@ -1091,7 +1088,6 @@ def main():
     if os.path.exists("./logfile.txt"):
         os.remove("./logfile.txt")
     ai = AI()
-    # Initialize chat window UI.
     window = create_chat_window()
     # Load personality configuration and initialize core memory.
     if args.personality is not None and os.path.exists(args.personality):

@@ -54,14 +54,11 @@ def check_model_config(model_path):
     Raises:
     FileNotFoundError: If the config.json file is not found in the specified model directory.
     """
-    # Define the path to the config.json file
     config_path = os.path.join(model_path, "config.json")
 
-    # Check if config.json exists
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config file not found at {config_path}")
 
-    # Open and read the config.json file
     with open(config_path, 'r', encoding="utf-8") as config_file:
         config_data = json.load(config_file)
 
@@ -77,7 +74,6 @@ def check_model_config(model_path):
                 if "vision" in sub_key.lower() or "image" in sub_key.lower():
                     occurrences += 1
 
-    # Set the multimodal flag based on occurrences
     multimodal = occurrences > 3
 
     return multimodal
@@ -175,7 +171,7 @@ def get_gpu_info():
         try:
             all_info = subprocess.check_output(["wmic", "path", "win32_videocontroller", "get", "name"], stderr=subprocess.STDOUT).decode().strip().split("\n")[1:]
             for info in all_info:
-                if info:  # Avoid adding empty lines
+                if info:
                     gpu_names.append(info.strip())
             return gpu_names
         except subprocess.CalledProcessError as e:
@@ -208,9 +204,7 @@ def generate_hash(content):
     - the hash
     """
     hash_obj = hashlib.sha256()
-    # Update the hash object with the content, encoded to bytes
     hash_obj.update(content.encode("utf-8"))
-    # Return the hexadecimal representation of the digest
     return hash_obj.hexdigest()
 
 
@@ -224,7 +218,7 @@ def generate_image_hash(filename):
     Returns:
     - the hash
     """
-    hash_sha256 = hashlib.sha256()  # Create a new SHA-256 hash object
+    hash_sha256 = hashlib.sha256()
 
     with open(filename, 'rb') as f:  # Open the file in binary read mode
         while True:
@@ -233,7 +227,7 @@ def generate_image_hash(filename):
                 break
             hash_sha256.update(data)  # Update the hash with the chunk of data
 
-    return hash_sha256.hexdigest()  # Return the hexadecimal digest of the hash
+    return hash_sha256.hexdigest()
 
 
 def log(input_string, debug_print=True):
@@ -366,7 +360,7 @@ def get_gpu_usage():
     handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # Assuming first GPU
     utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
     pynvml.nvmlShutdown()
-    return utilization.gpu  # GPU utilization as a percentage
+    return utilization.gpu
 
 
 def animate_ellipsis():
