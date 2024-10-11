@@ -300,15 +300,25 @@ def update_main_window(window):
     ai = AI()
     ps = ProgramSettings()
     clear_conversation(window)
+    avatar_path = os.path.join(ai.personality_path, "default.png")
+    if os.path.exists(avatar_path):
+        image_data = load_image(avatar_path, 256, 256)
+    else:
+        image_data = load_image("./resources/bai_icon_full_res.png", 256, 256)
+    window["-IMAGE-"].update(image_data)
+    window["-PERSONALITY_NAME-"].update(ai.personality_definition["name"])
     image_path_pattern = r"<image:(.+?)>"
 
     for _, message in enumerate(ai.core_memory[-ps.max_history:]):  # Slice list once instead of checking each time
         current_message = message["content"]
         sender_role = message["role"]
         sender_name = ai.personality_definition["name"] if sender_role == "assistant" else ps.username
-        sender_color = "purple" if sender_role == "assistant" else "blue"
-        text_color = "green" if message["rating"] == "+" else "red" if message["rating"] == "-" else "black"
-
+        if ps.theme == "light":
+            sender_color = "purple" if sender_role == "assistant" else "blue"
+            text_color = "green" if message["rating"] == "+" else "red" if message["rating"] == "-" else "black"
+        elif ps.theme == "dark":
+            sender_color = "#d500ff" if sender_role == "assistant" else "#0055ff"
+            text_color = "#47dd26" if message["rating"] == "+" else "#ff0000" if message["rating"] == "-" else "#aeaeae"
         matches = re.search(image_path_pattern, current_message)
         if matches:
             start_pos, end_pos = matches.span()
@@ -558,7 +568,7 @@ def create_edit_window():
             "response_length": "(response_length)(1+)(64) - Sets the maximum length for responses. Longer lengths allow for more detailed answers but also take longer to create.",
             "stm_size": "(stm_size)(0+)(16) - Sets the number of short term memories to be selected for working memory. Incrases VRAM usage when increased.",
             "ltm_size": "(ltm_size)(0+)(20) - Sets the number of long term memories to be selected for working memory. Increases VRAM usage when increased.",
-            "ltm_linked": "(ltm_linked) - If enabled, keeps user input and AI responses paired when selecting long term memories. Increases VRAM usage.",
+            "ltm_linked": "(ltm_linked) - If enabled, keeps user input and AI responses paired when selecting long term memories. Increases VRAM usage but should improve recall accuracy.",
             "num_keywords": "(num_keywords)(1+)(3) - Number of keywords extracted from the input for context searching.",
             "num_beams": "(num_beams)(1+)(1) - Number of alternatives explored for generating responses. Higher numbers increase response quality at the cost of speed and VRAM.",
             "persistent": "(persistent) - Whether the AI's conversation history is persistent across sessions.",
@@ -631,6 +641,7 @@ def create_settings_window():
     def update_help(window, evname):
         explanations = {
             "-USERNAME-": "(Username) - What you wanna be called. Used in the chat log and certain templates.",
+            "-THEME-": "(Theme) - The theme to use.",
             "-BACKEND-": "(Backend) - The backend to run inferences on. 'auto' is best in most cases.",
             "-QUANTIZATION-": "(Model Quantization) - The quantization to load the model with. Saves VRAM at a slight cost to accuracy.",
             "-DATATYPE-": "(Inference Datatype) - The datatype to use for inferencing, if unsure, use bfloat16.",
@@ -647,12 +658,14 @@ def create_settings_window():
     ps = ProgramSettings()
     label_width = 20
     string_width = 36
+    theme_options = ["light", "dark"]
     backend_options = ["cuda", "cpu", "auto"]
     quant_options = ["BNB 4bit", "BNB 4bit+", "BNB 8bit", "None"]
     datatype_options = ["float16", "bfloat16", "float32", "int8"]
     template_options = ["HF Automatic", "BAI Zephyr", "BAI Opus", "BAI Alpaca", "BAI Instruct", "BAI SynthIA"]
     layout = [
         [sg.Text("Username:", size=(label_width, 1)), sg.Input(default_text=ps.username, key="-USERNAME-", enable_events=True)],
+        [sg.Text("Theme:", size=(label_width, 1)), sg.Combo(theme_options, default_value=ps.theme, key="-THEME-", readonly=True, enable_events=True)],
         [sg.Text("Backend:", size=(label_width, 1)), sg.Combo(backend_options, default_value=ps.backend, key="-BACKEND-", readonly=True, enable_events=True)],
         [sg.Text("Model Quantization:", size=(label_width, 1)), sg.Combo(quant_options, default_value=ps.quant, key="-QUANTIZATION-", readonly=True, enable_events=True)],
         [sg.Text("Model Template:", size=(label_width, 1)), sg.Combo(template_options, default_value=ps.template, key="-TEMPLATE-", readonly=True, enable_events=True), sg.Checkbox("TRY to auto-select best", default=ps.auto_template, key="-AUTO_TEMPLATE_ENABLE-", enable_events=True)],
@@ -702,6 +715,10 @@ def handle_settings_event():
             ps.auto_template = values["-AUTO_TEMPLATE_ENABLE-"]
             ps.max_history = int(values["-MAX_HISTORY-"])
             ps.autosave = values["-AUTOSAVE_ENABLE-"]
+            if ps.theme != values["-THEME-"]:
+                ps.theme = values["-THEME-"]
+                sg.theme("Purple") if ps.theme == "light" else sg.theme("DarkGrey11")
+                ps.special = "theme_reset"
             log("Settings updated.")
             ps.save_to_file()
             settings_window.close()
@@ -921,7 +938,7 @@ def create_chat_window():
         ), sg.Multiline(size=(40, 20), key="-OUTPUT-", right_click_menu=c_right_click_menu, expand_y=True, enable_events=True, autoscroll=False, disabled=True, expand_x=True)],
         [sg.Text("", size=(40, 1), key="-NOTICE-", text_color="purple", expand_x=True), sg.Button("Guidance"), sg.Button("Load Model"), sg.Button("Create Personality"), sg.Button("Load Personality"), sg.Button("Edit Personality"), sg.Button("Settings")],
         [sg.Multiline(key="-INPUT-", size=(40, 6), expand_x=True, expand_y=True, right_click_menu=ccp_right_click_menu), sg.Button("Send", bind_return_key=True)],
-        [sg.Text("", size=(80, 1), key="-STATUS-", text_color="black", expand_x=True), sg.Button("About"), sg.Button("Attach")],
+        [sg.Text("", size=(80, 1), key="-STATUS-", text_color="purple", expand_x=True), sg.Button("About"), sg.Button("Attach")],
     ]
     window = sg.Window("BlissfulAI", layout, resizable=False, finalize=True, icon=GLOBAL_ICON)
     window["-INPUT-"].set_focus()
@@ -1048,13 +1065,6 @@ def load_personality(personality_path, window):
         ai.personality_definition = personality_definition
         ai.core_memory = memory
         ai.personality_path = personality_path
-        avatar_path = os.path.join(personality_path, "default.png")
-        if os.path.exists(avatar_path):
-            image_data = load_image(avatar_path, 256, 256)
-        else:
-            image_data = load_image("./resources/bai_icon_full_res.png", 256, 256)
-        window["-IMAGE-"].update(image_data)
-        window["-PERSONALITY_NAME-"].update(ai.personality_definition["name"])
         ps.personality_status = "loaded"
     else:
         log("Personality configuration not found.")
@@ -1068,7 +1078,6 @@ def main():
     """
     if args.suppress:
         warnings.filterwarnings("ignore")
-    sg.theme("Purple")
     image_link_pattern = r"<image:(.+?)>"
     llm = LanguageModel()
     ps = ProgramSettings()
@@ -1078,6 +1087,7 @@ def main():
     model_queue = Queue()
     update_window = threading.Event()
     ps.load_from_file()  # load the settings from settings.json
+    sg.theme("Purple") if ps.theme == "light" else sg.theme("DarkGrey11")
     if os.path.exists("./logfile.txt"):
         os.remove("./logfile.txt")
     ai = AI()
@@ -1172,6 +1182,11 @@ def main():
                 ai.core_memory[line_number]["identity"] = identity
                 ai.core_memory[line_number]["date"] = now
             ps.special = ""
+            update_main_window(window)
+        elif ps.special == "theme_reset":
+            ps.special = ""
+            window.close()
+            window = create_chat_window()
             update_main_window(window)
 
         # Retrieve the model or response if it's sitting in queue

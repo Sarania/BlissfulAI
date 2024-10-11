@@ -55,6 +55,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._multimodalness = False  # Whether the model is single or multi mode, not saved
         self._do_stream = False  # Whether or not to stream the generated text to stdout, saved to file
         self._autosave = True  # Whether or not to autosave the personality every minute, saved to file
+        self._theme = "light"  # Which theme to use, saved to file
         self._model_status = "unloaded"  # Current status of the model, not saved
         self._personality_status = "unloaded"  # Current status of the personality, not saved
         self._username = "User"  # Username, saved to file
@@ -201,6 +202,20 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._model_status = new_status
 
     @property
+    def theme(self):
+        """Gets the current theme."""
+        return self._theme
+
+    @theme.setter
+    def theme(self, new_theme):
+        """Sets the new theme.
+
+        Parameters:
+            new_theme: The new theme to set.
+        """
+        self._theme = new_theme
+
+    @property
     def personality_status(self):
         """Gets the current personality module status."""
         return self._personality_status
@@ -301,6 +316,7 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_default_personality": self._default_personality,
             "_do_stream": self._do_stream,
             "_autosave": self._autosave,
+            "_theme": self._theme,
             "_username": self._username,
             "_template": self._template,
             "_auto_template": self._auto_template,
@@ -332,6 +348,7 @@ class ProgramSettings(metaclass=SingletonMeta):
             "_default_personality": "",
             "_do_stream": False,
             "_autosave": True,
+            "_theme": "light",
             "_username": "User",
             "_template": "BAI Opus",
             "_auto_template": False,
@@ -358,6 +375,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         instance.default_personality = data.get("_default_personality", default_settings["_default_personality"])
         instance.do_stream = data.get("_do_stream", default_settings["_do_stream"])
         instance.autosave = data.get("_autosave", default_settings["_autosave"])
+        instance.theme = data.get("_theme", default_settings["_theme"])
         instance.username = data.get("_username", default_settings["_username"])
         instance.template = data.get("_template", default_settings["_template"])
         instance.auto_template = data.get("_auto_template", default_settings["_auto_template"])
