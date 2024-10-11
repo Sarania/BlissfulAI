@@ -258,11 +258,10 @@ def timed_execution(function):
         Function wrapper for timing
 
         """
-        start_time = time.time()  # Capture start time
-        result = function(*blargs, **kwargs)  # Execute the function
-        end_time = time.time()  # Capture end time
-        execution_time = end_time - start_time  # Calculate execution time
-        # Log the execution time
+        start_time = time.time()
+        result = function(*blargs, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
         log(f"Function '{function.__name__}' executed in {execution_time} seconds.")
         return result
     return wrapper

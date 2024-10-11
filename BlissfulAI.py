@@ -307,7 +307,7 @@ def update_main_window(window):
     else:
         image_data = load_image("./resources/bai_icon_full_res.png", 256, 256)
     window["-IMAGE-"].update(image_data)
-    window["-PERSONALITY_NAME-"].update(ai.personality_definition["name"])
+    window["-PERSONALITY_NAME-"].update(ai.personality_definition["name"] if ai.personality_definition["name"] != "Name" else "")
     image_path_pattern = r"<image:(.+?)>"
 
     for _, message in enumerate(ai.core_memory[-ps.max_history:]):  # Slice list once instead of checking each time
@@ -1329,7 +1329,7 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument("-m", "--model", type=str, default=None, help="Specify a model to load when the program starts")
 parser.add_argument("-p", "--personality", type=str, default=None, help="Specify a personality to load whhen the program starts")
 parser.add_argument("--suppress", action="store_true", help="Suppress any warnings from libraries like torch or transformers.")
-parser.add_argument("--verbose", action="store_true")
+parser.add_argument("--verbose", action="store_true", help="Prints even more huge chunks of text to stdout for debugging.")
 args = parser.parse_args()
 if __name__ == "__main__":
     main()
