@@ -1081,7 +1081,6 @@ def main():
     image_link_pattern = r"<image:(.+?)>"
     llm = LanguageModel()
     ps = ProgramSettings()
-    ps.do_stream = args.stream
     ps.backend = ps.backend.lower()
     model_response = Queue()
     model_queue = Queue()
@@ -1327,11 +1326,9 @@ def main():
 
 
 parser = argparse.ArgumentParser(description="")
-parser.add_argument("-m", "--model", type=str, default=None)
-parser.add_argument("-p", "--personality", type=str, default=None)
-parser.add_argument("--suppress", type=bool, default=True)
-parser.add_argument("-d", "--device", type=str, default="cuda")
-parser.add_argument("--stream", action="store_true")
+parser.add_argument("-m", "--model", type=str, default=None, help="Specify a model to load when the program starts")
+parser.add_argument("-p", "--personality", type=str, default=None, help="Specify a personality to load whhen the program starts")
+parser.add_argument("--suppress", action="store_true", help="Suppress any warnings from libraries like torch or transformers.")
 args = parser.parse_args()
 if __name__ == "__main__":
     main()

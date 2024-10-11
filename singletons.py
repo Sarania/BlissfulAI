@@ -119,9 +119,10 @@ class ProgramSettings(metaclass=SingletonMeta):
         Parameters:
             value: The new path to the default model file.
         """
-        if not os.path.exists(value):
+        if not os.path.exists(value) and value != "":
             log("Specified model does not exist!")
-        self._default_model = value
+        else:
+            self._default_model = value
 
     @property
     def default_personality(self):
@@ -135,9 +136,10 @@ class ProgramSettings(metaclass=SingletonMeta):
         Parameters:
             value: The new path to the default personality file.
         """
-        if not os.path.exists(value):
+        if not os.path.exists(value) and value != "":
             log("Specified personality path does not exist!")
-        self._default_personality = value
+        else:
+            self._default_personality = value
 
     @property
     def multimodalness(self):
