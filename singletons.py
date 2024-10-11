@@ -61,6 +61,7 @@ class ProgramSettings(metaclass=SingletonMeta):
         self._username = "User"  # Username, saved to file
         self._template = "BAI Opus"  # Selected template, saved to file
         self._special = ""  # Special command, not saved
+        self._verbose = False  # Whether to print very verbose stuff to stdout or not, not save to file
         self._auto_template = False  # Whether to try to use BAI auto templating. Saved to file
         self._max_history = 200  # The max history to display in the chat window, saved to file
         self._VERSION = "1.3.0"  # Program version
@@ -278,13 +279,28 @@ class ProgramSettings(metaclass=SingletonMeta):
 
     @auto_template.setter
     def auto_template(self, value):
-        """Sets the auto_template setting, ensuring it is a string.
+        """Sets the auto_template setting, ensuring it is a bool.
          Parameters:
             value: The new template setting.
         """
         if not isinstance(value, bool):
             raise ValueError("auto_template must be a bool")
         self._auto_template = value
+
+    @property
+    def verbose(self):
+        """Gets the current verbose setting."""
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        """Sets the verbose setting, ensuring it is a bool.
+         Parameters:
+            value: The new verbose setting.
+        """
+        if not isinstance(value, bool):
+            raise ValueError("verbose must be a bool")
+        self._verbose = value
 
     @property
     def max_history(self):

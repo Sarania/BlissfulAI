@@ -992,10 +992,10 @@ def load_personality(personality_path, window):
             personality_definition = data[0]  # The first entry in this list of dictionaries is the personality_definition
             memory = data[1:]  # The remaining entries constitute it"s memory
             # Log the loaded personality details
-            log(f"Loading personality ({personality_definition['name']})...")
+            log(f"Loading personality ({personality_definition['name']})...", ps.verbose)
             for key, value in personality_definition.items():
-                log(f"{key}: {value}")
-            log("---------------------------------------------------------")
+                log(f"{key}: {value}", args.verbose)
+            log("---------------------------------------------------------", ps.verbose)
             default_definition = {"name": "Name", "top_p": 1.0, "top_k": 50, "temperature": 1.0, "response_length": 64, "persistent": True, "stm_size": 24, "ltm_size": 24, "ltm_linked": False, "repetition_penalty": 1.0, "length_penalty": 1.0, "num_beams": 1, "num_keywords": 3, "top_p_enable": False, "top_k_enable": False, "typical_p": 0.92, "typical_p_enable": True, "temperature_enable": False, "length_penalty_enable": False, "repetition_penalty_enable": False}
             for entry in default_definition:
                 try:
@@ -1007,7 +1007,7 @@ def load_personality(personality_path, window):
             ai.system_memory = []
             with open(system_message_path, "r", encoding="utf-8") as sm_file:
                 ai.system_memory = json.load(sm_file)
-            log(f"AI System Memory: {ai.system_memory}")
+            log(f"AI System Memory: {ai.system_memory}", ps.verbose)
             log(f"{len(ai.system_memory)} system messages.")
             memory = [{**item, "content": item["content"].replace("\n", "")} for item in memory]  # clean the \n
         memory_failed = 0
@@ -1082,6 +1082,7 @@ def main():
     llm = LanguageModel()
     ps = ProgramSettings()
     ps.backend = ps.backend.lower()
+    ps.verbose = args.verbose
     model_response = Queue()
     model_queue = Queue()
     update_window = threading.Event()
@@ -1329,6 +1330,7 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument("-m", "--model", type=str, default=None, help="Specify a model to load when the program starts")
 parser.add_argument("-p", "--personality", type=str, default=None, help="Specify a personality to load whhen the program starts")
 parser.add_argument("--suppress", action="store_true", help="Suppress any warnings from libraries like torch or transformers.")
+parser.add_argument("--verbose", action="store_true")
 args = parser.parse_args()
 if __name__ == "__main__":
     main()

@@ -236,9 +236,9 @@ def generate_image_hash(filename):
     return hash_sha256.hexdigest()  # Return the hexadecimal digest of the hash
 
 
-def log(input_string):
+def log(input_string, debug_print=True):
     """
-    Logs the string to the logfile
+    Logs the string to the logfile, prints if debug_print is true
 
     Parameters:
     - input_string: The string to log.
@@ -248,7 +248,8 @@ def log(input_string):
         current_time = datetime.now()
         time_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
         logfile.write(f"{time_str}: {input_string}\n")
-        print(f"{time_str}: {input_string}\n")
+        if debug_print:
+            print(f"{time_str}: {input_string}\n")
 
 
 def timed_execution(function):

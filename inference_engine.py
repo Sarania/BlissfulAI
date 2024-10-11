@@ -228,7 +228,7 @@ def custom_template(llm):
                 templated_prompt += ai.personality_definition["name"] + ": "
                 templated_prompt += entry["content"] + "\n"
         templated_prompt += "### Response: \n"
-    log(f"Templated prompt: {templated_prompt}")
+    log(f"Templated prompt: {templated_prompt}", ps.verbose)
     return templated_prompt
 
 
@@ -313,6 +313,7 @@ def update_working_memory(user_message):
     - a list of dictionaries to function as the working memory
     """
     ai = AI()
+    ps = ProgramSettings()
     # First we extract a list of keywords to be used for context matching. How many is set by the AI config.
     log("Updating working memory...")
     keywords = extract_keywords(user_message, ai.personality_definition)
@@ -391,7 +392,7 @@ def update_working_memory(user_message):
     # Insert system messages at the beginning of the working memory.
     new_working_memory = ai.system_memory + selected_memories
     log(f"Working memory updated. Entries: {len(new_working_memory)}")
-    log(f"New working memory: {new_working_memory}")
+    log(f"New working memory: {new_working_memory}", ps.verbose)
     return new_working_memory
 
 
