@@ -189,29 +189,6 @@ class LanguageModel():
         self._streamer = value
 
 
-def handle_memory_failed():
-    """
-    Displays a notice to the user that memory check failed and asks what to do
-
-    Parameters:
-    - message: The notice to display
-
-    """
-    layout = [
-        [sg.Text("Detected errors in memory fingerprint. What would you like to do?")],
-        [sg.Column([[sg.Button("Fix"), sg.Button("Ignore")]], justification="center")]
-    ]
-    window = sg.Window("Memory Check Failed!", layout, icon=GLOBAL_ICON, modal=True)
-    while True:
-        event, _ = window.read()
-        if event in (sg.WIN_CLOSED, "Ignore"):
-            window.close()
-            return False
-        if event == "Fix":
-            window.close()
-            return True
-
-
 def open_url(url):
     """
     Simply opens a URL in the default browser
@@ -966,6 +943,92 @@ def handle_attach_event(window, current_input):
         log("No image file selected!")
 
 
+def check_memory(memory):
+    def fix_it_check(extra_message):
+        log(extra_message)
+        if not hasattr(fix_it_check, "checked"):
+            layout = [
+                [sg.Text("Detected errors in memory integrity and or fingerprint. The memory checker said:")],
+                [sg.Text(extra_message)],
+                [sg.Text("What would you like to do?")],
+                [sg.Column([[sg.Button("Fix"), sg.Button("Ignore")]], justification="center")]
+            ]
+            window = sg.Window("Memory Check Failed!", layout, icon=GLOBAL_ICON, modal=True)
+            while True:
+                event, _ = window.read(timeout=200)
+                if event in (sg.WIN_CLOSED, "Ignore"):
+                    window.close()
+                    fix_it_check.checked = False
+                    break
+                if event == "Fix":
+                    window.close()
+                    fix_it_check.checked = True
+                    break
+        return fix_it_check.checked
+
+    memory_failed = 0
+    for i, entry in enumerate(memory):
+        try:
+            assert "role" in entry
+        except AssertionError:
+            log(f"Memory {i} missing 'role' field! This shouldn't be and means the personality is corrupted. Shutting down to prevent data loss.")
+            sys.exit(9)
+        try:
+            assert "content" in entry
+        except AssertionError:
+            log(f"Memory {i} missing 'content' field! This shouldn't be and means the personality is corrupted. Shutting down to prevent data loss.")
+            sys.exit(9)
+        try:
+            assert "date" in entry
+        except AssertionError:
+            memory_failed += 1
+            if fix_it_check(f"Memory {i} missing 'date' field!"):
+                log("Assigning default date...")
+                memory[i]["date"] = "2001-01-01 01:01:01.01"
+            else:
+                log("Ignored!")
+        try:
+            assert "identity" in entry
+        except AssertionError:
+            memory_failed += 1
+            if fix_it_check(f"Memory {i} missing 'identity' field!"):
+                log("Attempting to generate...")
+                if "content" in entry and "date" in entry:
+                    memory[i]["identity"] = generate_hash(str(entry["content"]) + str(entry["date"]))
+                    log("Fingerprint: " + memory[i]["identity"])
+                else:
+                    log("Other fields are missing so unable to generate!")
+            else:
+                log("Ignored!")
+        try:
+            if "content" in entry and "identity" in entry and "date" in entry:
+                assert entry["identity"] == generate_hash(str(entry["content"]) + str(entry["date"]))
+        except AssertionError:
+            memory_failed += 1
+            if fix_it_check("Fingerprint mismatch for memory " + str(i) + "Expected: " + generate_hash(str(entry["content"]) + str(entry["date"])) + "Actual: " + entry["identity"]):
+                log("Updating...")
+                memory[i]["identity"] = generate_hash(str(entry["content"]) + str(entry["date"]))
+                log("Fingerprint: " + memory[i]["identity"])
+            else:
+                log("Ignored!")
+
+        try:
+            assert "rating" in entry
+        except AssertionError:
+            memory_failed += 1
+            if fix_it_check(f"Memory {i} missing 'rating' field!"):
+                log("Creating with blank rating...")
+                memory[i]["rating"] = ""
+        try:
+            assert "weight" in entry
+        except AssertionError:
+            memory_failed += 1
+            if fix_it_check(f"Memory {i} missing 'weight' field! This field was added recently so this might be expected!"):
+                log("Creating with 0 weight...")
+                memory[i]["weight"] = 0.0
+    log("Detected " + str(memory_failed) + " errors in memory!")
+
+
 @timed_execution
 def load_personality(personality_path):
     """
@@ -1008,57 +1071,8 @@ def load_personality(personality_path):
             log(f"AI System Memory: {ai.system_memory}", ps.verbose)
             log(f"{len(ai.system_memory)} system messages.")
             memory = [{**item, "content": item["content"].replace("\n", "")} for item in memory]  # clean the \n
-        memory_failed = 0
         log("Memory consistency checks...")
-        fix_it = None
-        for i, entry in enumerate(memory):
-            try:
-                assert "role" in entry
-            except AssertionError:
-                log(f"Memory {i} missing 'role' field!")
-                memory_failed += 1
-            try:
-                assert "content" in entry
-            except AssertionError:
-                log(f"Memory {i} missing 'content' field!")
-                memory_failed += 1
-            try:
-                assert "identity" in entry
-            except AssertionError:
-                log(f"Memory {i} missing 'identity' field!")
-                memory_failed += 1
-            try:
-                assert "date" in entry
-            except AssertionError:
-                log(f"Memory {i} missing 'date' field!")
-                memory_failed += 1
-            try:
-                if "content" in entry and "identity" in entry and "date" in entry:
-                    assert entry["identity"] == generate_hash(str(entry["content"]) + str(entry["date"]))
-            except AssertionError:
-                log("Fingerprint mismatch for memory " + str(i))
-                log("Expected: " + generate_hash(str(entry["content"]) + str(entry["date"])))
-                log("Actual: " + entry["identity"])
-                if fix_it is None:
-                    fix_it = handle_memory_failed()
-                if fix_it:
-                    log("Updating...")
-                    memory[i]["identity"] = generate_hash(str(entry["content"]) + str(entry["date"]))
-                    log("Fingerprint: " + memory[i]["identity"])
-                else:
-                    log("Failed memory ignored!")
-                memory_failed += 1
-            try:
-                assert "rating" in entry
-            except AssertionError:
-                log(f"Memory {i} missing 'rating' field!")
-                memory_failed += 1
-        log("Detected " + str(memory_failed) + " errors in memory!")
-        if fix_it is not None:
-            if not fix_it:
-                log("Warning: Memory fingerprints NOT fixed, memory is inconsistent.")
-            else:
-                log("Memory fingerprints updated!")
+        check_memory(memory)
         log("Memory checks complete.")
         ai.personality_definition = personality_definition
         ai.core_memory = memory

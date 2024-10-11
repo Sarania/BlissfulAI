@@ -339,20 +339,7 @@ def update_working_memory(user_message):
                 else:
                     entry["pair"] = ""
             matching_memories.append(entry)
-    # Reverse both of these so that the memories are in the correct temporal order
-    matching_memories = reversed(matching_memories)
-    # Create an OrderedDict to preserve order while removing duplicates
-    unique_entries = OrderedDict()
 
-    # Iterate through matching_memories while preserving order
-    for entry in matching_memories:
-        content = entry["content"]
-        # Add the entry to the OrderedDict only if it"s not already present
-        if content not in unique_entries:
-            unique_entries[content] = entry
-
-    # Extract the values from the OrderedDict to maintain the order
-    matching_memories = list(unique_entries.values())
     # Select memories with a bias towards more recent matches and feedback.
     if matching_memories:
         # Create initial weights that increase linearly towards more recent entries.
